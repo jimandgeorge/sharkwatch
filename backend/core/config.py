@@ -26,6 +26,9 @@ class Settings(BaseSettings):
     aws_bedrock_region: str = "eu-west-2"
     aws_bedrock_model_id: str = "anthropic.claude-3-5-sonnet-20241022-v2:0"
 
+    # Auth — leave blank to disable (useful for local dev)
+    api_key: str = ""
+
     class Config:
         env_file = ".env"
 

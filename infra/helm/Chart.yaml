@@ -1,0 +1,14 @@
+apiVersion: v2
+name: fraud-copilot
+description: AI Transaction Investigation Copilot — on-prem/VPC deployment
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords:
+  - fraud
+  - fintech
+  - ai
+  - app-fraud
+home: https://github.com/your-org/fraud-copilot
+maintainers:
+  - name: Fraud Copilot Team

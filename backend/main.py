@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .api import ingest, investigate, decisions
 from .core.config import settings
+from .core.auth import APIKeyMiddleware
 
 app = FastAPI(
     title="Fraud Copilot",
@@ -10,6 +11,7 @@ app = FastAPI(
     redoc_url=None,
 )
 
+app.add_middleware(APIKeyMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],   # tighten per-deployment via nginx

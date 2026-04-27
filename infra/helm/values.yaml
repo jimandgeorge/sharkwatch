@@ -1,0 +1,77 @@
+# Fraud Copilot — Helm values
+# Override per-deployment in a separate values file:
+#   helm install fraud-copilot ./infra/helm -f my-values.yaml
+
+# ── Images ────────────────────────────────────────────────────────────────────
+backend:
+  image: fraud-copilot-backend
+  tag: latest
+  replicas: 2
+  resources:
+    requests: { cpu: 500m, memory: 512Mi }
+    limits:   { cpu: 2,    memory: 2Gi  }
+
+frontend:
+  image: fraud-copilot-frontend
+  tag: latest
+  replicas: 2
+  resources:
+    requests: { cpu: 100m, memory: 256Mi }
+    limits:   { cpu: 500m, memory: 512Mi }
+
+ollama:
+  enabled: true           # set false if using Azure OpenAI or Bedrock
+  image: ollama/ollama
+  tag: latest
+  model: llama3.1:70b
+  embedModel: nomic-embed-text
+  gpu: true               # set false for CPU-only nodes
+  resources:
+    requests: { cpu: 2, memory: 16Gi }
+    limits:   { cpu: 8, memory: 32Gi }
+  storage:
+    size: 50Gi            # enough for 70B model weights
+    storageClass: ""      # uses cluster default
+
+# ── Database ─────────────────────────────────────────────────────────────────
+# Use an external managed Postgres in production (RDS, Cloud SQL, Azure DB)
+postgres:
+  external: true          # set false to deploy a bundled Postgres (not for prod)
+  host: ""                # required when external: true
+  port: 5432
+  database: fraudcopilot
+  user: fraud
+  # Password via secret — see secrets section below
+
+# ── Secrets ──────────────────────────────────────────────────────────────────
+# Create a Kubernetes secret manually before installing:
+#   kubectl create secret generic fraud-copilot-secrets \
+#     --from-literal=postgres-password=... \
+#     --from-literal=redis-password=... \
+#     --from-literal=secret-key=... \
+#     --from-literal=api-key=...
+secrets:
+  existingSecret: fraud-copilot-secrets
+
+# ── LLM provider ─────────────────────────────────────────────────────────────
+llm:
+  provider: ollama        # ollama | azure | bedrock
+  azure:
+    endpoint: ""
+    deployment: gpt-4o
+    embedDeployment: text-embedding-3-small
+  bedrock:
+    region: eu-west-2
+    modelId: anthropic.claude-3-5-sonnet-20241022-v2:0
+
+# ── Ingress ──────────────────────────────────────────────────────────────────
+ingress:
+  enabled: true
+  className: nginx
+  host: fraud-copilot.internal
+  tls:
+    enabled: true
+    secretName: fraud-copilot-tls   # cert-manager or manually created
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "180"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "180"
