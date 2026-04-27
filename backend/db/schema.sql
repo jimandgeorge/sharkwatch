@@ -19,6 +19,8 @@ CREATE TABLE transactions (
     geolocation     TEXT,
     fraud_signals   JSONB,
     triggered_rules JSONB,
+    risk_score      INT NOT NULL DEFAULT 0,
+    risk_level      TEXT NOT NULL DEFAULT 'low',
     raw_payload     JSONB,
     occurred_at     TIMESTAMPTZ NOT NULL,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -66,7 +68,7 @@ CREATE TABLE fraud_cases (
     summary     TEXT NOT NULL,
     outcome     TEXT NOT NULL,
     signals     JSONB NOT NULL DEFAULT '[]',
-    embedding   vector(1536),
+    embedding   vector(768),
     created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -75,7 +77,7 @@ CREATE TABLE policy_docs (
     id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     title       TEXT NOT NULL,
     content     TEXT NOT NULL,
-    embedding   vector(1536),
+    embedding   vector(768),
     updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
