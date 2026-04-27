@@ -62,6 +62,8 @@ async def investigate(
         raw = await _call_azure(full_context)
     elif provider == "bedrock":
         raw = await _call_bedrock(full_context)
+    elif provider == "mock":
+        raw = _call_mock(full_context)
     else:
         raise ValueError(f"Unknown LLM provider: {provider}")
 
@@ -142,9 +144,38 @@ async def _call_bedrock(context: dict) -> str:
     return result["content"][0]["text"]
 
 
+def _call_mock(context: dict) -> str:
+    score = context.get("risk_score", 0)
+    signals = [f["label"] for f in context.get("risk_factors", [])]
+    signal_text = ", ".join(signals) if signals else "none"
+
+    if score >= 150:
+        action, confidence, fraud_type = "hold", "high", "APP fraud — multiple high-risk signals"
+    elif score >= 100:
+        action, confidence, fraud_type = "step_up_verification", "medium", "Suspicious transfer pattern"
+    elif score >= 50:
+        action, confidence, fraud_type = "step_up_verification", "low", None
+    else:
+        action, confidence, fraud_type = "approve", "high", None
+
+    return json.dumps({
+        "fraud_type": fraud_type,
+        "confidence": confidence,
+        "summary": (
+            f"[MOCK ANALYSIS] Risk score {score}. "
+            f"Signals detected: {signal_text}. "
+            "This is a development stub — set LLM_PROVIDER=ollama to get real AI analysis."
+        ),
+        "recommended_action": action,
+        "policy_rules_triggered": [],
+    })
+
+
 def _model_name() -> str:
     if settings.llm_provider == "ollama":
         return settings.ollama_model
     if settings.llm_provider == "azure":
         return settings.azure_openai_deployment
+    if settings.llm_provider == "mock":
+        return "mock"
     return settings.aws_bedrock_model_id

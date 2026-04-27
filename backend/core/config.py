@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     database_url: str
     redis_url: str
 
-    llm_provider: Literal["ollama", "azure", "bedrock"] = "ollama"
+    llm_provider: Literal["ollama", "azure", "bedrock", "mock"] = "ollama"
 
     # Ollama
     ollama_base_url: str = "http://ollama:11434"
