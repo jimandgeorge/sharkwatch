@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { fetchQueue, QueueItem } from "@/lib/api";
+import AutoRefresh from "./AutoRefresh";
 
-const RISK_BADGE: Record<string, string> = {
-  critical: "bg-red-100 text-red-700 border border-red-200",
-  high:     "bg-orange-100 text-orange-700 border border-orange-200",
-  medium:   "bg-yellow-100 text-yellow-700 border border-yellow-200",
-  low:      "bg-green-100 text-green-700 border border-green-200",
+const RISK: Record<string, { dot: string; label: string; action: string }> = {
+  critical: { dot: "bg-red-500",     label: "text-red-400",     action: "bg-red-500/10 text-red-400 border-red-500/20" },
+  high:     { dot: "bg-orange-500",  label: "text-orange-400",  action: "bg-orange-500/10 text-orange-400 border-orange-500/20" },
+  medium:   { dot: "bg-yellow-500",  label: "text-yellow-400",  action: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20" },
+  low:      { dot: "bg-emerald-500", label: "text-emerald-400", action: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" },
 };
 
 const ACTION_LABEL: Record<string, string> = {
@@ -16,136 +17,253 @@ const ACTION_LABEL: Record<string, string> = {
   step_up_verification: "Step-up",
 };
 
-function formatGBP(pence: number): string {
-  return new Intl.NumberFormat("en-GB", {
-    style: "currency",
-    currency: "GBP",
-  }).format(pence / 100);
+function formatGBP(pence: number) {
+  return new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(
+    pence / 100
+  );
 }
 
-function timeAgo(iso: string): string {
+function timeAgo(iso: string) {
   const secs = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
-  if (secs < 60) return `${secs}s ago`;
-  if (secs < 3600) return `${Math.floor(secs / 60)}m ago`;
-  if (secs < 86400) return `${Math.floor(secs / 3600)}h ago`;
-  return `${Math.floor(secs / 86400)}d ago`;
+  if (secs < 60) return `${secs}s`;
+  if (secs < 3600) return `${Math.floor(secs / 60)}m`;
+  if (secs < 86400) return `${Math.floor(secs / 3600)}h`;
+  return `${Math.floor(secs / 86400)}d`;
 }
 
-export default async function QueuePage() {
+export default async function QueuePage({
+  searchParams,
+}: {
+  searchParams: { status?: string };
+}) {
+  const status = searchParams.status === "decided" ? "decided" : "pending";
   let items: QueueItem[] = [];
   let error: string | null = null;
 
   try {
-    items = await fetchQueue("pending");
-  } catch (e) {
-    error = "Could not reach backend — is it running?";
+    items = await fetchQueue(status);
+  } catch {
+    error = "Could not reach backend.";
   }
 
   return (
     <div>
+      {/* Header */}
       <div className="flex items-center justify-between mb-5">
-        <div>
-          <h1 className="text-xl font-semibold">Pending Investigations</h1>
-          <p className="text-sm text-slate-500 mt-0.5">
-            {items.length} case{items.length !== 1 ? "s" : ""} awaiting decision — sorted by risk score
-          </p>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-1 border border-zinc-800 rounded-lg p-0.5">
+            <Link
+              href="/queue"
+              className={`px-3 py-1 rounded-md text-[12px] font-medium transition-colors ${
+                status === "pending"
+                  ? "bg-zinc-800 text-zinc-200"
+                  : "text-zinc-600 hover:text-zinc-400"
+              }`}
+            >
+              Pending
+              {status === "pending" && items.length > 0 && (
+                <span className="ml-1.5 text-[11px] text-zinc-500 font-mono">{items.length}</span>
+              )}
+            </Link>
+            <Link
+              href="/queue?status=decided"
+              className={`px-3 py-1 rounded-md text-[12px] font-medium transition-colors ${
+                status === "decided"
+                  ? "bg-zinc-800 text-zinc-200"
+                  : "text-zinc-600 hover:text-zinc-400"
+              }`}
+            >
+              History
+              {status === "decided" && items.length > 0 && (
+                <span className="ml-1.5 text-[11px] text-zinc-500 font-mono">{items.length}</span>
+              )}
+            </Link>
+          </div>
         </div>
-        <a
-          href="/queue"
-          className="text-sm text-slate-500 hover:text-slate-700 border border-slate-200 rounded px-3 py-1.5 bg-white"
-        >
-          Refresh
-        </a>
+        {status === "pending" && <AutoRefresh />}
       </div>
 
       {error && (
-        <div className="rounded border border-red-200 bg-red-50 text-red-700 px-4 py-3 text-sm mb-4">
+        <div className="rounded-lg border border-red-900/40 bg-red-950/20 text-red-400 px-4 py-3 text-[12px] mb-4">
           {error}
         </div>
       )}
 
       {!error && items.length === 0 && (
-        <div className="text-center py-16 text-slate-400 text-sm">
-          No pending investigations. Cases will appear here after transactions are ingested.
+        <div className="flex flex-col items-center justify-center py-24 gap-1.5">
+          <p className="text-zinc-600 text-[13px]">
+            {status === "pending" ? "No pending investigations" : "No decided cases yet"}
+          </p>
+          <p className="text-zinc-700 text-[12px]">
+            {status === "pending"
+              ? "Cases appear here after transactions are flagged"
+              : "Decided cases will appear here"}
+          </p>
         </div>
       )}
 
-      {items.length > 0 && (
-        <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
-          <table className="w-full text-sm">
+      {items.length > 0 && status === "pending" && (
+        <div className="rounded-lg border border-zinc-800 overflow-hidden">
+          <table className="w-full">
             <thead>
-              <tr className="border-b border-slate-100 bg-slate-50 text-slate-500 text-xs uppercase tracking-wide">
-                <th className="text-left px-4 py-3 font-medium">Risk</th>
-                <th className="text-left px-4 py-3 font-medium">Amount</th>
-                <th className="text-left px-4 py-3 font-medium">Customer</th>
-                <th className="text-left px-4 py-3 font-medium">Fraud Type</th>
-                <th className="text-left px-4 py-3 font-medium">Recommended</th>
-                <th className="text-left px-4 py-3 font-medium">Confidence</th>
-                <th className="text-left px-4 py-3 font-medium">Received</th>
-                <th className="px-4 py-3" />
+              <tr className="border-b border-zinc-800 bg-zinc-900/40">
+                {["Risk", "Amount", "Customer", "Fraud type", "Action", "Confidence", "Age", ""].map(
+                  (h) => (
+                    <th
+                      key={h}
+                      className="text-left px-4 py-2.5 text-[10px] font-medium text-zinc-600 uppercase tracking-widest"
+                    >
+                      {h}
+                    </th>
+                  )
+                )}
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
-              {items.map((item) => (
-                <tr
-                  key={item.id}
-                  className="hover:bg-slate-50 transition-colors"
-                >
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
+            <tbody>
+              {items.map((item, i) => {
+                const r = RISK[item.risk_level] ?? RISK.low;
+                return (
+                  <tr
+                    key={item.id}
+                    className={`group transition-colors hover:bg-zinc-800/30 ${
+                      i > 0 ? "border-t border-zinc-800/50" : ""
+                    }`}
+                  >
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${r.dot}`} />
+                        <span className={`text-[12px] font-medium ${r.label}`}>
+                          {item.risk_level}
+                        </span>
+                        <span className="text-[11px] font-mono text-zinc-600">
+                          {item.risk_score}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-[13px] font-mono font-medium text-zinc-100 tabular-nums">
+                      {formatGBP(item.amount_pence)}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="text-[12px] font-mono text-zinc-400">{item.customer_id}</div>
+                      {item.customer_email && (
+                        <div className="text-[11px] text-zinc-600 mt-0.5">{item.customer_email}</div>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-[12px] text-zinc-400 max-w-[200px] truncate">
+                      {item.fraud_type ?? <span className="text-zinc-700">—</span>}
+                    </td>
+                    <td className="px-4 py-3">
                       <span
-                        className={`text-xs font-medium px-2 py-0.5 rounded-full ${RISK_BADGE[item.risk_level] ?? RISK_BADGE.low}`}
+                        className={`inline-flex items-center px-2 py-0.5 rounded-full border text-[11px] font-medium ${r.action}`}
                       >
-                        {item.risk_level.toUpperCase()}
+                        {ACTION_LABEL[item.recommended_action] ?? item.recommended_action}
                       </span>
-                      <span className="font-mono text-slate-700 font-medium">
-                        {item.risk_score}
+                    </td>
+                    <td className="px-4 py-3 text-[12px]">
+                      <span
+                        className={
+                          item.confidence === "high"
+                            ? "text-emerald-400"
+                            : item.confidence === "medium"
+                            ? "text-yellow-400"
+                            : "text-zinc-600"
+                        }
+                      >
+                        {item.confidence}
                       </span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 font-medium tabular-nums">
-                    {formatGBP(item.amount_pence)}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="font-mono text-xs text-slate-600">{item.customer_id}</div>
-                    {item.customer_email && (
-                      <div className="text-xs text-slate-400">{item.customer_email}</div>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-slate-600">
-                    {item.fraud_type ?? <span className="text-slate-300">—</span>}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="text-xs font-medium text-slate-700">
-                      {ACTION_LABEL[item.recommended_action] ?? item.recommended_action}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`text-xs ${
-                        item.confidence === "high"
-                          ? "text-emerald-600"
-                          : item.confidence === "medium"
-                          ? "text-amber-600"
-                          : "text-slate-400"
-                      }`}
+                    </td>
+                    <td className="px-4 py-3 text-[12px] text-zinc-600 font-mono">
+                      {timeAgo(item.created_at)}
+                    </td>
+                    <td className="px-4 py-3 text-right pr-4">
+                      <Link
+                        href={`/investigation/${item.id}`}
+                        className="text-[12px] text-[#5E6AD2] hover:text-[#8B93E8] font-medium transition-colors"
+                      >
+                        Review →
+                      </Link>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {items.length > 0 && status === "decided" && (
+        <div className="rounded-lg border border-zinc-800 overflow-hidden">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-zinc-800 bg-zinc-900/40">
+                {["Amount", "Customer", "Fraud type", "Decision", "Analyst", "Decided", ""].map(
+                  (h) => (
+                    <th
+                      key={h}
+                      className="text-left px-4 py-2.5 text-[10px] font-medium text-zinc-600 uppercase tracking-widest"
                     >
-                      {item.confidence}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-slate-400 text-xs">
-                    {timeAgo(item.created_at)}
-                  </td>
-                  <td className="px-4 py-3">
-                    <Link
-                      href={`/investigation/${item.id}`}
-                      className="text-xs font-medium text-blue-600 hover:text-blue-800"
-                    >
-                      Review &rarr;
-                    </Link>
-                  </td>
-                </tr>
-              ))}
+                      {h}
+                    </th>
+                  )
+                )}
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((item, i) => {
+                const r = RISK[item.risk_level] ?? RISK.low;
+                return (
+                  <tr
+                    key={item.id}
+                    className={`group transition-colors hover:bg-zinc-800/30 ${
+                      i > 0 ? "border-t border-zinc-800/50" : ""
+                    }`}
+                  >
+                    <td className="px-4 py-3">
+                      <div className="text-[13px] font-mono font-medium text-zinc-100 tabular-nums">
+                        {formatGBP(item.amount_pence)}
+                      </div>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <span className={`w-1 h-1 rounded-full shrink-0 ${r.dot}`} />
+                        <span className={`text-[11px] ${r.label}`}>{item.risk_level}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="text-[12px] font-mono text-zinc-400">{item.customer_id}</div>
+                      {item.customer_email && (
+                        <div className="text-[11px] text-zinc-600 mt-0.5">{item.customer_email}</div>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-[12px] text-zinc-400 max-w-[180px] truncate">
+                      {item.fraud_type ?? <span className="text-zinc-700">—</span>}
+                    </td>
+                    <td className="px-4 py-3">
+                      {item.decision_action ? (
+                        <span
+                          className={`inline-flex items-center px-2 py-0.5 rounded-full border text-[11px] font-medium ${r.action}`}
+                        >
+                          {ACTION_LABEL[item.decision_action] ?? item.decision_action}
+                        </span>
+                      ) : (
+                        <span className="text-zinc-700 text-[12px]">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-[12px] font-mono text-zinc-500">
+                      {item.analyst_id ?? <span className="text-zinc-700">—</span>}
+                    </td>
+                    <td className="px-4 py-3 text-[12px] text-zinc-600 font-mono">
+                      {item.decided_at ? timeAgo(item.decided_at) : "—"}
+                    </td>
+                    <td className="px-4 py-3 text-right pr-4">
+                      <Link
+                        href={`/investigation/${item.id}`}
+                        className="text-[12px] text-zinc-600 hover:text-zinc-300 font-medium transition-colors"
+                      >
+                        View →
+                      </Link>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

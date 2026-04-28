@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 
 
@@ -42,7 +42,7 @@ class IngestPayload(BaseModel):
     fraud_signals: Optional[list[str]] = None
     triggered_rules: Optional[list[str]] = None
 
-    occurred_at: datetime = Field(default_factory=datetime.utcnow)
+    occurred_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     raw_payload: Optional[dict] = None
 
 

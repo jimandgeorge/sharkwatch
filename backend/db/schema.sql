@@ -89,3 +89,14 @@ CREATE INDEX ON investigations (status, risk_score DESC);
 CREATE INDEX ON decisions (transaction_id);
 CREATE INDEX ON fraud_cases USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
 CREATE INDEX ON policy_docs USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
+
+-- Conversational investigation thread
+CREATE TABLE investigation_messages (
+    id                  UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    investigation_id    UUID NOT NULL REFERENCES investigations(id) ON DELETE CASCADE,
+    role                TEXT NOT NULL CHECK (role IN ('analyst', 'assistant')),
+    content             TEXT NOT NULL,
+    sources             JSONB NOT NULL DEFAULT '[]',
+    created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX ON investigation_messages (investigation_id, created_at);

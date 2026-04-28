@@ -35,8 +35,8 @@ async def ingest_transaction(
                 :customer_id, :customer_email, :merchant_name,
                 :beneficiary_account, :beneficiary_name, :transfer_type,
                 :ip_address, :device_fingerprint, :geolocation,
-                :fraud_signals::jsonb, :triggered_rules::jsonb, :risk_score, :risk_level,
-                :raw_payload::jsonb, :occurred_at
+                :fraud_signals, :triggered_rules, :risk_score, :risk_level,
+                :raw_payload, :occurred_at
             )
             ON CONFLICT (source, external_id) DO NOTHING
             RETURNING id
@@ -60,7 +60,7 @@ async def ingest_transaction(
             "triggered_rules": json.dumps(payload.triggered_rules or []),
             "risk_score": score,
             "risk_level": level.value,
-            "raw_payload": json.dumps(payload.raw_payload) if payload.raw_payload else None,
+            "raw_payload": json.dumps(payload.raw_payload) if payload.raw_payload is not None else None,
             "occurred_at": payload.occurred_at,
         },
     )
@@ -88,12 +88,12 @@ async def ingest_transaction(
 
 
 async def _investigate_background(transaction_id: str) -> None:
-    """Run the full investigation pipeline in the background after ingest returns."""
+    import traceback
     from ..services import context_aggregator, rag_service, llm_engine
-    import json
+    from ..services.risk_scorer import RULE_INDEX
 
-    async with AsyncSessionLocal() as db:
-        try:
+    try:
+        async with AsyncSessionLocal() as db:
             row = await db.execute(
                 text("SELECT * FROM transactions WHERE id = :id"),
                 {"id": transaction_id},
@@ -103,24 +103,22 @@ async def _investigate_background(transaction_id: str) -> None:
                 return
 
             txn_dict = dict(txn)
-            risk_factors: list[dict] = txn_dict.get("fraud_signals") or []
-            if not isinstance(risk_factors, list):
-                risk_factors = []
+            raw_signals = txn_dict.get("fraud_signals") or []
+            if not isinstance(raw_signals, list):
+                raw_signals = []
 
-            # Rebuild structured risk factors from stored signals
-            from ..services.risk_scorer import RULE_INDEX
             structured_factors = []
-            for signal in risk_factors:
+            for signal in raw_signals:
                 if isinstance(signal, str) and signal in RULE_INDEX:
                     pts, evidence = RULE_INDEX[signal]
                     structured_factors.append({"label": signal, "score": pts, "evidence": evidence})
                 elif isinstance(signal, dict):
                     structured_factors.append(signal)
 
-            context = await context_aggregator.aggregate(db, txn_dict)
-            txn_dict["aggregated_context"] = context
+            ctx = await context_aggregator.aggregate(db, txn_dict)
+            txn_dict["aggregated_context"] = ctx
 
-            similar_cases, policy_docs = await rag_service.retrieve_for_transaction(
+            similar_cases, _ = await rag_service.retrieve_for_transaction(
                 db, txn_dict, structured_factors
             )
 
@@ -135,8 +133,8 @@ async def _investigate_background(transaction_id: str) -> None:
                     ) VALUES (
                         :transaction_id, :risk_score, :risk_level, :fraud_type, :confidence,
                         :summary, :recommended_action,
-                        :risk_factors::jsonb, :retrieved_case_ids::jsonb,
-                        :policy_rules::jsonb, :llm_provider, :llm_model
+                        :risk_factors, :retrieved_case_ids,
+                        :policy_rules, :llm_provider, :llm_model
                     )
                 """),
                 {
@@ -155,6 +153,6 @@ async def _investigate_background(transaction_id: str) -> None:
                 },
             )
             await db.commit()
-        except Exception:
-            await db.rollback()
-            raise
+    except Exception:
+        traceback.print_exc()
+        print(f"[bg] investigation failed for {transaction_id}", flush=True)

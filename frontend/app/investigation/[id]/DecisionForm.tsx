@@ -5,12 +5,40 @@ import { useRouter } from "next/navigation";
 import { submitDecision } from "@/lib/api";
 
 const ACTIONS = [
-  { value: "approve",              label: "Approve",           style: "border-emerald-300 text-emerald-700 hover:bg-emerald-50" },
-  { value: "hold",                 label: "Hold Payment",      style: "border-amber-300 text-amber-700 hover:bg-amber-50" },
-  { value: "step_up_verification", label: "Step-up Verify",   style: "border-blue-300 text-blue-700 hover:bg-blue-50" },
-  { value: "escalate",             label: "Escalate",          style: "border-orange-300 text-orange-700 hover:bg-orange-50" },
-  { value: "freeze_account",       label: "Freeze Account",    style: "border-red-300 text-red-700 hover:bg-red-50" },
+  {
+    value: "approve",
+    label: "Approve",
+    base: "border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10",
+    selected: "bg-emerald-500/10 ring-1 ring-emerald-500/30",
+  },
+  {
+    value: "hold",
+    label: "Hold",
+    base: "border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10",
+    selected: "bg-yellow-500/10 ring-1 ring-yellow-500/30",
+  },
+  {
+    value: "step_up_verification",
+    label: "Step-up",
+    base: "border-blue-500/30 text-blue-400 hover:bg-blue-500/10",
+    selected: "bg-blue-500/10 ring-1 ring-blue-500/30",
+  },
+  {
+    value: "escalate",
+    label: "Escalate",
+    base: "border-orange-500/30 text-orange-400 hover:bg-orange-500/10",
+    selected: "bg-orange-500/10 ring-1 ring-orange-500/30",
+  },
+  {
+    value: "freeze_account",
+    label: "Freeze account",
+    base: "border-red-500/30 text-red-400 hover:bg-red-500/10",
+    selected: "bg-red-500/10 ring-1 ring-red-500/30",
+  },
 ];
+
+const inputCls =
+  "w-full bg-zinc-900 border border-zinc-700/80 rounded-md px-3 py-2 text-[13px] text-zinc-200 placeholder-zinc-600 focus:outline-none focus:ring-1 focus:ring-[#5E6AD2] focus:border-[#5E6AD2] transition-colors";
 
 export default function DecisionForm({
   transactionId,
@@ -24,6 +52,7 @@ export default function DecisionForm({
   const [notes, setNotes] = useState("");
   const [analystId, setAnalystId] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -42,24 +71,39 @@ export default function DecisionForm({
           analyst_notes: notes || undefined,
           override_reason:
             action !== recommendedAction
-              ? `Analyst overrode AI recommendation (${recommendedAction})`
+              ? `Overrode AI recommendation (${recommendedAction})`
               : undefined,
         },
         analystId.trim()
       );
-      router.push("/queue");
-      router.refresh();
+      setSubmitted(action);
+      setTimeout(() => {
+        router.push("/queue");
+        router.refresh();
+      }, 1500);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Submission failed.");
       setSubmitting(false);
     }
   }
 
+  if (submitted) {
+    const a = ACTIONS.find((x) => x.value === submitted);
+    return (
+      <div className="flex flex-col items-center gap-2 py-6 text-center">
+        <div className={`text-[14px] font-medium ${a?.base.match(/text-\S+/)?.[0] ?? "text-zinc-200"}`}>
+          Decision recorded — {a?.label ?? submitted}
+        </div>
+        <div className="text-[12px] text-zinc-600">Returning to queue…</div>
+      </div>
+    );
+  }
+
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
       <div>
-        <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">
-          Decision
+        <label className="block text-[10px] font-medium text-zinc-600 uppercase tracking-widest mb-2.5">
+          Action
         </label>
         <div className="flex flex-wrap gap-2">
           {ACTIONS.map((a) => (
@@ -67,52 +111,53 @@ export default function DecisionForm({
               key={a.value}
               type="button"
               onClick={() => setAction(a.value)}
-              className={`px-3 py-1.5 text-sm rounded border font-medium transition-colors ${a.style} ${
-                action === a.value ? "ring-2 ring-offset-1 ring-current" : ""
+              className={`px-3 py-1.5 text-[12px] rounded-md border font-medium transition-colors ${a.base} ${
+                action === a.value ? a.selected : ""
               }`}
             >
               {a.label}
               {a.value === recommendedAction && action !== a.value && (
-                <span className="ml-1 text-xs opacity-60">(AI)</span>
+                <span className="ml-1.5 text-[10px] opacity-40">AI</span>
               )}
             </button>
           ))}
         </div>
         {action !== recommendedAction && (
-          <p className="mt-1.5 text-xs text-amber-600">
+          <p className="mt-2 text-[11px] text-yellow-600">
             Overriding AI recommendation: {recommendedAction}
           </p>
         )}
       </div>
 
       <div>
-        <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-1.5">
-          Analyst ID <span className="text-red-400">*</span>
+        <label className="block text-[10px] font-medium text-zinc-600 uppercase tracking-widest mb-1.5">
+          Analyst ID{" "}
+          <span className="text-red-500/60 normal-case font-normal tracking-normal">required</span>
         </label>
         <input
           type="text"
           value={analystId}
           onChange={(e) => setAnalystId(e.target.value)}
           placeholder="e.g. jsmith"
-          className="w-full border border-slate-200 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+          className={inputCls}
         />
       </div>
 
       <div>
-        <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-1.5">
+        <label className="block text-[10px] font-medium text-zinc-600 uppercase tracking-widest mb-1.5">
           Notes
         </label>
         <textarea
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           rows={3}
-          placeholder="Optional — reasoning, evidence reviewed, customer contact..."
-          className="w-full border border-slate-200 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 resize-none"
+          placeholder="Reasoning, evidence reviewed, customer contact..."
+          className={`${inputCls} resize-none`}
         />
       </div>
 
       {error && (
-        <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2">
+        <p className="text-[12px] text-red-400 bg-red-500/10 border border-red-500/20 rounded-md px-3 py-2">
           {error}
         </p>
       )}
@@ -120,9 +165,9 @@ export default function DecisionForm({
       <button
         type="submit"
         disabled={submitting}
-        className="w-full bg-slate-900 text-white text-sm font-medium rounded px-4 py-2.5 hover:bg-slate-700 disabled:opacity-50 transition-colors"
+        className="w-full bg-[#5E6AD2] hover:bg-[#6E7AE2] disabled:opacity-40 text-white text-[13px] font-medium rounded-md px-4 py-2.5 transition-colors"
       >
-        {submitting ? "Submitting..." : "Submit Decision"}
+        {submitting ? "Submitting…" : "Submit Decision"}
       </button>
     </form>
   );

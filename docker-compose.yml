@@ -45,7 +45,9 @@ services:
     # Remove the deploy block above if no GPU available — will run on CPU (slower)
 
   backend:
-    build: ./backend
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
     environment:
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-fraud}:${POSTGRES_PASSWORD}@postgres:5432/fraudcopilot
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0

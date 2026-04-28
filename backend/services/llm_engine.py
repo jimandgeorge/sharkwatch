@@ -5,7 +5,8 @@ Switch provider via LLM_PROVIDER env var: ollama | azure | bedrock.
 All providers return the same InvestigationResult shape.
 """
 import json
-from datetime import datetime
+import uuid
+from datetime import datetime, date
 from ..core.config import settings
 from ..models.investigation import InvestigationResult, RiskFactor, RetrievedCase
 
@@ -30,15 +31,23 @@ Output schema:
 }"""
 
 
+def _json_default(obj):
+    if isinstance(obj, uuid.UUID):
+        return str(obj)
+    if isinstance(obj, (datetime, date)):
+        return obj.isoformat()
+    raise TypeError(f"Object of type {type(obj).__name__} is not JSON serializable")
+
+
 def _build_prompt(context: dict) -> str:
     return f"""Transaction under investigation:
-{json.dumps(context['transaction'], indent=2)}
+{json.dumps(context['transaction'], indent=2, default=_json_default)}
 
 Risk factors detected (score: {context['risk_score']}):
-{json.dumps(context['risk_factors'], indent=2)}
+{json.dumps(context['risk_factors'], indent=2, default=_json_default)}
 
 Retrieved similar prior cases:
-{json.dumps(context['prior_cases'], indent=2)}
+{json.dumps(context['prior_cases'], indent=2, default=_json_default)}
 
 Produce your fraud assessment as JSON."""
 
@@ -62,6 +71,8 @@ async def investigate(
         raw = await _call_azure(full_context)
     elif provider == "bedrock":
         raw = await _call_bedrock(full_context)
+    elif provider == "anthropic":
+        raw = await _call_anthropic(full_context)
     elif provider == "mock":
         raw = _call_mock(full_context)
     else:
@@ -70,7 +81,7 @@ async def investigate(
     parsed = json.loads(raw)
 
     return InvestigationResult(
-        transaction_id=context["id"],
+        transaction_id=str(context["id"]),
         risk_score=context.get("risk_score", 0),
         risk_level=context.get("risk_level", "medium"),
         fraud_type=parsed.get("fraud_type"),
@@ -144,6 +155,24 @@ async def _call_bedrock(context: dict) -> str:
     return result["content"][0]["text"]
 
 
+async def _call_anthropic(context: dict) -> str:
+    import anthropic
+    client = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key)
+    prompt = _build_prompt(context)
+
+    message = await client.messages.create(
+        model="claude-opus-4-7",
+        max_tokens=2048,
+        system=SYSTEM_PROMPT,
+        messages=[{"role": "user", "content": prompt}],
+    )
+
+    for block in message.content:
+        if block.type == "text":
+            return block.text
+    raise RuntimeError("No text content in Anthropic response")
+
+
 def _call_mock(context: dict) -> str:
     score = context.get("risk_score", 0)
     signals = [f["label"] for f in context.get("risk_factors", [])]
@@ -176,6 +205,8 @@ def _model_name() -> str:
         return settings.ollama_model
     if settings.llm_provider == "azure":
         return settings.azure_openai_deployment
+    if settings.llm_provider == "anthropic":
+        return "claude-opus-4-7"
     if settings.llm_provider == "mock":
         return "mock"
     return settings.aws_bedrock_model_id

@@ -19,16 +19,21 @@ async def get_queue(
     status: str = "pending",
     db: AsyncSession = Depends(get_db),
 ):
+    order = "d.decided_at DESC" if status == "decided" else "i.risk_score DESC, i.created_at ASC"
     rows = await db.execute(
-        text("""
+        text(f"""
             SELECT
                 i.id, i.transaction_id, i.risk_score, i.risk_level,
                 i.fraud_type, i.confidence, i.recommended_action, i.created_at,
-                t.amount_pence, t.currency, t.customer_id, t.customer_email, t.source
+                t.amount_pence, t.currency, t.customer_id, t.customer_email, t.source,
+                d.action  AS decision_action,
+                d.analyst_id,
+                d.decided_at
             FROM investigations i
             JOIN transactions t ON t.id = i.transaction_id
+            LEFT JOIN decisions d ON d.investigation_id = i.id
             WHERE i.status = :status
-            ORDER BY i.risk_score DESC, i.created_at ASC
+            ORDER BY {order}
             LIMIT :limit
         """),
         {"status": status, "limit": limit},
@@ -36,8 +41,9 @@ async def get_queue(
     items = []
     for r in rows.mappings():
         item = dict(r)
-        if hasattr(item.get("created_at"), "isoformat"):
-            item["created_at"] = item["created_at"].isoformat()
+        for field in ("created_at", "decided_at"):
+            if hasattr(item.get(field), "isoformat"):
+                item[field] = item[field].isoformat()
         items.append(item)
     return {"items": items}
 
@@ -122,8 +128,8 @@ async def run_investigation(transaction_id: str, db: AsyncSession = Depends(get_
             ) VALUES (
                 :transaction_id, :risk_score, :risk_level, :fraud_type, :confidence,
                 :summary, :recommended_action,
-                :risk_factors::jsonb, :retrieved_case_ids::jsonb,
-                :policy_rules::jsonb, :llm_provider, :llm_model
+                :risk_factors, :retrieved_case_ids,
+                :policy_rules, :llm_provider, :llm_model
             )
         """),
         {

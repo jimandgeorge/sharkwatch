@@ -1,4 +1,13 @@
-const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+// API_URL is a server-side-only env var used in Docker (http://backend:8000).
+// NEXT_PUBLIC_API_URL / fallback is used by the browser.
+const BASE =
+  process.env.API_URL ??
+  process.env.NEXT_PUBLIC_API_URL ??
+  "http://localhost:8000";
+
+// For use in client components — only NEXT_PUBLIC_* vars are available in the browser.
+export const CLIENT_BASE =
+  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 export interface QueueItem {
   id: string;
@@ -14,6 +23,10 @@ export interface QueueItem {
   customer_id: string;
   customer_email: string | null;
   source: string;
+  // decided cases only
+  decision_action: string | null;
+  analyst_id: string | null;
+  decided_at: string | null;
 }
 
 export interface RiskFactor {
@@ -70,6 +83,82 @@ export async function fetchInvestigation(id: string): Promise<Investigation> {
   });
   if (!res.ok) throw new Error("Failed to fetch investigation");
   return res.json() as Promise<Investigation>;
+}
+
+export interface ChatMessage {
+  id: string;
+  role: "analyst" | "assistant";
+  content: string;
+  sources: string[];
+  created_at: string;
+}
+
+export async function fetchMessages(investigationId: string): Promise<ChatMessage[]> {
+  const res = await fetch(`${BASE}/investigations/${investigationId}/messages`, {
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error("Failed to fetch messages");
+  const data = await res.json();
+  return data.messages as ChatMessage[];
+}
+
+export async function sendMessage(
+  investigationId: string,
+  question: string
+): Promise<ChatMessage> {
+  const res = await fetch(`${BASE}/investigations/${investigationId}/messages`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ question }),
+  });
+  if (!res.ok) throw new Error("Failed to send message");
+  return res.json() as Promise<ChatMessage>;
+}
+
+export interface EntityTransaction {
+  transaction_id: string;
+  investigation_id: string | null;
+  customer_id: string;
+  customer_email: string | null;
+  amount_pence: number;
+  currency: string;
+  beneficiary_name: string | null;
+  beneficiary_account: string | null;
+  device_fingerprint: string | null;
+  ip_address: string | null;
+  geolocation: string | null;
+  risk_level: string;
+  risk_score: number;
+  fraud_type: string | null;
+  confidence: string | null;
+  status: string | null;
+  recommended_action: string | null;
+  decision_action: string | null;
+  analyst_id: string | null;
+  occurred_at: string;
+  decided_at: string | null;
+}
+
+export interface EntityResult {
+  entity_type: string;
+  entity_value: string;
+  transactions: EntityTransaction[];
+  summary: {
+    total_transactions: number;
+    total_exposure_pence: number;
+    unique_customers: number;
+    pending: number;
+    decided: number;
+  };
+}
+
+export async function fetchEntity(type: string, value: string): Promise<EntityResult> {
+  const res = await fetch(
+    `${BASE}/entities/${type}?value=${encodeURIComponent(value)}`,
+    { cache: "no-store" }
+  );
+  if (!res.ok) throw new Error("Failed to fetch entity");
+  return res.json();
 }
 
 export async function submitDecision(

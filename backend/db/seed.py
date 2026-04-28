@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Seed fraud_cases and policy_docs with realistic APP fraud data.
+Seed fraud_cases, policy_docs, and transactions with realistic APP fraud data.
 
 Run after the stack is up:
   python -m backend.db.seed              # insert records (no embeddings)
@@ -11,11 +11,16 @@ Ollama is running and nomic-embed-text has been pulled.
 """
 import asyncio
 import json
+import ssl
 import sys
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
 import asyncpg
+
+
+def _ago(days: int = 0, hours: int = 0) -> datetime:
+    return datetime.now(timezone.utc) - timedelta(days=days, hours=hours)
 
 # ── Fraud cases ────────────────────────────────────────────────────────────────
 
@@ -210,6 +215,372 @@ Freeze duration:
 ]
 
 
+# ── Transactions + investigations ─────────────────────────────────────────────
+#
+# Each entry has a "txn" block and an "inv" block.
+# Entity overlaps are deliberate so the copilot's entity-context queries
+# return useful evidence when an analyst investigates a pending case.
+#
+# Scenario A — Mule account (shared device + shared beneficiary)
+#   fp-mule-device-001  /  GB12BARC20714583910167  (T Williams)
+#   Three different customers; copilot will surface all three.
+#
+# Scenario B — Investment scam velocity
+#   cust-david-mason-004 makes escalating transfers to new beneficiaries.
+#   Copilot surfaces the prior two transfers when investigating the third.
+#
+# Scenario C — Romance scam (standalone pending)
+# Scenario D — Bank impersonation / ATO (standalone pending)
+
+TRANSACTIONS: list[dict] = [
+    # ── A1: Mule account, historical, decided ───────────────────────────────────
+    {
+        "txn": {
+            "external_id": "FPS-SEED-A001",
+            "source": "faster_payments",
+            "amount_pence": 320000,
+            "customer_id": "cust-alice-hart-001",
+            "customer_email": "alice.hart@example.com",
+            "beneficiary_account": "GB12BARC20714583910167",
+            "beneficiary_name": "T Williams",
+            "transfer_type": "FPS",
+            "ip_address": "82.45.112.77",
+            "device_fingerprint": "fp-mule-device-001",
+            "geolocation": "Bristol, UK",
+            "fraud_signals": ["new_beneficiary", "large_unusual_transfer"],
+            "risk_score": 75,
+            "risk_level": "medium",
+            "occurred_at": _ago(days=28),
+        },
+        "inv": {
+            "fraud_type": "Suspicious transfer",
+            "confidence": "medium",
+            "summary": (
+                "Customer transferred £3,200 to a new beneficiary (T Williams). "
+                "Transfer is above the customer's 30-day average but not dramatically so. "
+                "Device fingerprint had not previously been flagged. Step-up verification "
+                "was completed successfully. No prior links to confirmed fraud cases at the time."
+            ),
+            "recommended_action": "approve",
+            "risk_factors": [
+                {"label": "new_beneficiary", "score": 40, "evidence": "New beneficiary — no prior payments to this account"},
+                {"label": "large_unusual_transfer", "score": 35, "evidence": "Transfer above customer's 30-day average"},
+            ],
+            "policy_rules_triggered": ["New beneficiary transfer > £2,500 — step-up verification required"],
+            "status": "decided",
+        },
+    },
+    # ── A2: Mule account, historical, decided ───────────────────────────────────
+    {
+        "txn": {
+            "external_id": "FPS-SEED-A002",
+            "source": "faster_payments",
+            "amount_pence": 750000,
+            "customer_id": "cust-bob-price-002",
+            "customer_email": "b.price@webmail.co.uk",
+            "beneficiary_account": "GB12BARC20714583910167",
+            "beneficiary_name": "T Williams",
+            "transfer_type": "FPS",
+            "ip_address": "91.208.34.19",
+            "device_fingerprint": "fp-mule-device-001",
+            "geolocation": "Cardiff, UK",
+            "fraud_signals": ["new_beneficiary", "large_unusual_transfer", "mule_device_match"],
+            "risk_score": 135,
+            "risk_level": "high",
+            "occurred_at": _ago(days=18),
+        },
+        "inv": {
+            "fraud_type": "Suspected mule account",
+            "confidence": "high",
+            "summary": (
+                "Customer transferred £7,500 to T Williams (GB12BARC20714583910167). "
+                "Device fingerprint fp-mule-device-001 had previously appeared on a medium-risk "
+                "transaction to the same beneficiary 10 days earlier. Beneficiary account has now "
+                "received two payments totalling £10,700 from different customers. Pattern is "
+                "consistent with a mule account. Payment held; customer was uncontactable within "
+                "the 2-hour window. Payment blocked and customer contacted the following morning."
+            ),
+            "recommended_action": "hold",
+            "risk_factors": [
+                {"label": "new_beneficiary", "score": 40, "evidence": "New beneficiary for this customer"},
+                {"label": "large_unusual_transfer", "score": 35, "evidence": "Transfer significantly above customer average"},
+                {"label": "mule_device_match", "score": 60, "evidence": "Device fp-mule-device-001 linked to prior suspicious transfer to same beneficiary"},
+            ],
+            "policy_rules_triggered": [
+                "New beneficiary + transfer > £5,000 — mandatory hold",
+                "Device fingerprint matches flagged account — escalation required",
+            ],
+            "status": "decided",
+        },
+    },
+    # ── A3: Mule account, PENDING (current investigation) ──────────────────────
+    {
+        "txn": {
+            "external_id": "FPS-SEED-A003",
+            "source": "faster_payments",
+            "amount_pence": 1450000,
+            "customer_id": "cust-carol-dean-003",
+            "customer_email": "carol.dean@personalmail.com",
+            "beneficiary_account": "GB12BARC20714583910167",
+            "beneficiary_name": "T Williams",
+            "transfer_type": "FPS",
+            "ip_address": "185.220.101.45",
+            "device_fingerprint": "fp-mule-device-001",
+            "geolocation": "Manchester, UK",
+            "fraud_signals": ["new_beneficiary", "large_unusual_transfer", "mule_device_match", "high_velocity"],
+            "risk_score": 170,
+            "risk_level": "critical",
+            "occurred_at": _ago(hours=1),
+        },
+        "inv": {
+            "fraud_type": "APP fraud — mule account",
+            "confidence": "high",
+            "summary": (
+                "Carol Dean is attempting to transfer £14,500 to T Williams (GB12BARC20714583910167). "
+                "This is the third payment to this beneficiary account from different customers in 28 days, "
+                "with prior amounts of £3,200 and £7,500 — totalling £25,200 across three customers. "
+                "Device fingerprint fp-mule-device-001 is shared across all three transactions, strongly "
+                "indicating a coordinated mule account operation. The sending IP (185.220.101.45) resolves "
+                "to a Tor exit node. Payment must be held immediately, customer contacted for welfare check, "
+                "and a SAR filed. The beneficiary account should be reported to Barclays."
+            ),
+            "recommended_action": "hold",
+            "risk_factors": [
+                {"label": "new_beneficiary", "score": 40, "evidence": "New beneficiary for this customer"},
+                {"label": "large_unusual_transfer", "score": 35, "evidence": "Transfer significantly above customer average"},
+                {"label": "mule_device_match", "score": 60, "evidence": "Device fp-mule-device-001 linked to 2 prior transfers to same beneficiary across different customers"},
+                {"label": "high_velocity", "score": 35, "evidence": "Third transfer to this beneficiary account in 28 days"},
+            ],
+            "policy_rules_triggered": [
+                "New beneficiary + transfer > £5,000 — mandatory hold",
+                "Device fingerprint matches known mule account — escalation required",
+                "Mule account pattern confirmed — SAR filing mandatory",
+            ],
+            "status": "pending",
+        },
+    },
+    # ── B1: Investment scam velocity, historical, decided ───────────────────────
+    {
+        "txn": {
+            "external_id": "FPS-SEED-B001",
+            "source": "faster_payments",
+            "amount_pence": 420000,
+            "customer_id": "cust-david-mason-004",
+            "customer_email": "d.mason@outlook.com",
+            "beneficiary_account": "GB87HSBC20481710342519",
+            "beneficiary_name": "James Richardson",
+            "transfer_type": "FPS",
+            "ip_address": "86.11.203.44",
+            "device_fingerprint": "fp-david-001",
+            "geolocation": "Leeds, UK",
+            "fraud_signals": ["new_beneficiary", "large_unusual_transfer"],
+            "risk_score": 75,
+            "risk_level": "medium",
+            "occurred_at": _ago(days=12),
+        },
+        "inv": {
+            "fraud_type": "Possible investment scam",
+            "confidence": "low",
+            "summary": (
+                "David Mason transferred £4,200 to a new beneficiary James Richardson. "
+                "Customer stated payment was for a personal loan repayment. Step-up verification "
+                "completed successfully. No prior fraud signals on this account. "
+                "Transfer approved with enhanced monitoring applied."
+            ),
+            "recommended_action": "approve",
+            "risk_factors": [
+                {"label": "new_beneficiary", "score": 40, "evidence": "New beneficiary for this customer"},
+                {"label": "large_unusual_transfer", "score": 35, "evidence": "Transfer above customer's 30-day average"},
+            ],
+            "policy_rules_triggered": ["New beneficiary transfer > £2,500 — step-up verification required"],
+            "status": "decided",
+        },
+    },
+    # ── B2: Investment scam velocity, historical, decided ───────────────────────
+    {
+        "txn": {
+            "external_id": "FPS-SEED-B002",
+            "source": "faster_payments",
+            "amount_pence": 610000,
+            "customer_id": "cust-david-mason-004",
+            "customer_email": "d.mason@outlook.com",
+            "beneficiary_account": "GB29NWBK60161331926819",
+            "beneficiary_name": "Michael Roberts",
+            "transfer_type": "FPS",
+            "ip_address": "86.11.203.44",
+            "device_fingerprint": "fp-david-001",
+            "geolocation": "Leeds, UK",
+            "fraud_signals": ["new_beneficiary", "large_unusual_transfer", "high_velocity"],
+            "risk_score": 110,
+            "risk_level": "high",
+            "occurred_at": _ago(days=6),
+        },
+        "inv": {
+            "fraud_type": "Possible investment scam",
+            "confidence": "medium",
+            "summary": (
+                "Second large transfer from David Mason in 12 days, this time to a different new "
+                "beneficiary (Michael Roberts). Customer claims another personal loan repayment but "
+                "cannot provide documentation. Two large transfers to different new beneficiaries "
+                "within 12 days is consistent with 'drip-feed' investment scam typology. Transfer "
+                "held pending customer contact. Customer was spoken to and insisted the transfers were "
+                "legitimate — released under customer direction after an explicit fraud warning was given "
+                "and documented."
+            ),
+            "recommended_action": "hold",
+            "risk_factors": [
+                {"label": "new_beneficiary", "score": 40, "evidence": "Second new beneficiary in 12 days"},
+                {"label": "large_unusual_transfer", "score": 35, "evidence": "Transfer above customer average; amounts escalating"},
+                {"label": "high_velocity", "score": 35, "evidence": "Second large transfer to a different new beneficiary in 12 days"},
+            ],
+            "policy_rules_triggered": [
+                "New beneficiary + transfer > £5,000 — mandatory hold",
+                "High velocity pattern — enhanced monitoring applied",
+            ],
+            "status": "decided",
+        },
+    },
+    # ── B3: Investment scam velocity, PENDING ───────────────────────────────────
+    {
+        "txn": {
+            "external_id": "FPS-SEED-B003",
+            "source": "faster_payments",
+            "amount_pence": 980000,
+            "customer_id": "cust-david-mason-004",
+            "customer_email": "d.mason@outlook.com",
+            "beneficiary_account": "GB91LOYD20264837829140",
+            "beneficiary_name": "Steven Clarke",
+            "transfer_type": "FPS",
+            "ip_address": "86.11.203.44",
+            "device_fingerprint": "fp-david-001",
+            "geolocation": "Leeds, UK",
+            "fraud_signals": ["new_beneficiary", "large_unusual_transfer", "high_velocity"],
+            "risk_score": 110,
+            "risk_level": "high",
+            "occurred_at": _ago(hours=2),
+        },
+        "inv": {
+            "fraud_type": "Investment scam",
+            "confidence": "high",
+            "summary": (
+                "David Mason is attempting a third large transfer to a new beneficiary in 12 days, "
+                "totalling £20,100 across three payments (£4,200 + £6,100 + £9,800). Each beneficiary "
+                "is a different new payee and the amounts are escalating — classic 'drip-feed' scam "
+                "behaviour where victims are told each payment will unlock their returns. The prior "
+                "transfer (6 days ago) was released under customer direction after a documented fraud "
+                "warning. Immediate hold required. Customer must be contacted with a stronger intervention "
+                "— a video call is recommended given the cumulative exposure of £20,100. Consider a "
+                "temporary cooling-off restriction on new payee transfers."
+            ),
+            "recommended_action": "hold",
+            "risk_factors": [
+                {"label": "new_beneficiary", "score": 40, "evidence": "Third new beneficiary in 12 days — escalating pattern"},
+                {"label": "large_unusual_transfer", "score": 35, "evidence": "Amounts escalating: £4,200 → £6,100 → £9,800"},
+                {"label": "high_velocity", "score": 35, "evidence": "Three large transfers to different new beneficiaries in 12 days"},
+            ],
+            "policy_rules_triggered": [
+                "New beneficiary + transfer > £5,000 — mandatory hold",
+                "High velocity pattern — senior analyst review required",
+                "Prior fraud warning given — mandatory customer contact before any release",
+            ],
+            "status": "pending",
+        },
+    },
+    # ── C: Romance scam, PENDING ────────────────────────────────────────────────
+    {
+        "txn": {
+            "external_id": "FPS-SEED-C001",
+            "source": "faster_payments",
+            "amount_pence": 1850000,
+            "customer_id": "cust-emma-watts-005",
+            "customer_email": "emmajwatts1957@gmail.com",
+            "beneficiary_account": "GB55SRLG20394810293847",
+            "beneficiary_name": "Dr Nikos Papadopoulos",
+            "transfer_type": "FPS",
+            "ip_address": "91.108.56.130",
+            "device_fingerprint": "fp-emma-001",
+            "geolocation": "Norwich, UK",
+            "fraud_signals": ["new_beneficiary", "large_unusual_transfer", "high_upstream_score"],
+            "risk_score": 105,
+            "risk_level": "high",
+            "occurred_at": _ago(hours=3),
+        },
+        "inv": {
+            "fraud_type": "Romance scam",
+            "confidence": "high",
+            "summary": (
+                "Emma Watts (account holder since 2019) is attempting to transfer £18,500 — her "
+                "largest ever outbound transfer — to a new beneficiary named 'Dr Nikos Papadopoulos'. "
+                "The customer has no prior history of transfers to international-sounding payees. "
+                "The upstream fraud engine scored this 820/1000. The beneficiary name and transfer "
+                "size relative to account history (median outbound: £340, making this 54x above average) "
+                "are strongly consistent with romance scam typology, where victims are groomed online "
+                "before being asked to transfer funds urgently. Recommend an immediate hold and a "
+                "welfare check call — approach with empathy, not accusation."
+            ),
+            "recommended_action": "hold",
+            "risk_factors": [
+                {"label": "new_beneficiary", "score": 40, "evidence": "No prior payments to this account"},
+                {"label": "large_unusual_transfer", "score": 35, "evidence": "£18,500 vs median outbound of £340 — 54x above average"},
+                {"label": "high_upstream_score", "score": 30, "evidence": "Upstream fraud engine scored 820/1000"},
+            ],
+            "policy_rules_triggered": [
+                "New beneficiary + transfer > £5,000 — mandatory hold",
+                "Transfer > £10,000 — video verification required before release",
+            ],
+            "status": "pending",
+        },
+    },
+    # ── D: Bank impersonation / ATO, PENDING ────────────────────────────────────
+    {
+        "txn": {
+            "external_id": "FPS-SEED-D001",
+            "source": "faster_payments",
+            "amount_pence": 340000,
+            "customer_id": "cust-frank-osei-006",
+            "customer_email": "frank.osei@hotmail.com",
+            "beneficiary_account": "GB22MONZ20014821936391",
+            "beneficiary_name": "Secure Holding Account",
+            "transfer_type": "FPS",
+            "ip_address": "104.16.88.21",
+            "device_fingerprint": "fp-frank-new-device-001",
+            "geolocation": "Birmingham, UK",
+            "fraud_signals": ["new_device", "password_reset_before_txn", "new_beneficiary"],
+            "risk_score": 110,
+            "risk_level": "high",
+            "occurred_at": _ago(hours=1),
+        },
+        "inv": {
+            "fraud_type": "Impersonation — bank staff",
+            "confidence": "high",
+            "summary": (
+                "Frank Osei's account shows a password reset 18 minutes before this transfer, "
+                "followed by login from a previously unseen device. The beneficiary name "
+                "'Secure Holding Account' is a strong indicator of bank impersonation fraud, "
+                "where victims are instructed by fraudsters posing as bank staff to move funds "
+                "to a 'safe account'. Password reset → new device → safe-account beneficiary name "
+                "is a textbook account takeover via social engineering. The sending IP resolves to "
+                "a Cloudflare data centre (not a residential address), consistent with a fraudster "
+                "using a VPN. Recommend an immediate account freeze and customer welfare call — "
+                "do not mention the SAR or use the word 'suspicious'."
+            ),
+            "recommended_action": "escalate",
+            "risk_factors": [
+                {"label": "new_device", "score": 30, "evidence": "First login ever from this device fingerprint"},
+                {"label": "password_reset_before_txn", "score": 40, "evidence": "Password reset 18 minutes before transfer initiated"},
+                {"label": "new_beneficiary", "score": 40, "evidence": "'Secure Holding Account' — classic bank impersonation beneficiary pattern"},
+            ],
+            "policy_rules_triggered": [
+                "Password reset within 60 minutes of transfer — mandatory hold",
+                "New device + new beneficiary — step-up verification required",
+                "Beneficiary name matches safe-account impersonation typology — escalate",
+            ],
+            "status": "pending",
+        },
+    },
+]
+
+
 # ── Embedding ──────────────────────────────────────────────────────────────────
 
 async def _embed(text: str, ollama_url: str) -> list[float] | None:
@@ -234,10 +605,13 @@ def _vec_literal(v: list[float]) -> str:
 # ── Main ───────────────────────────────────────────────────────────────────────
 
 async def seed(database_url: str, generate_embeddings: bool, ollama_url: str) -> None:
-    # asyncpg uses a plain postgres:// URL, not the SQLAlchemy asyncpg+postgresql one
-    pg_url = database_url.replace("postgresql+asyncpg://", "postgresql://")
+    pg_url = database_url.replace("postgresql+asyncpg://", "postgresql://").split("?")[0]
 
-    conn = await asyncpg.connect(pg_url)
+    ssl_ctx = ssl.create_default_context()
+    ssl_ctx.check_hostname = False
+    ssl_ctx.verify_mode = ssl.CERT_NONE
+
+    conn = await asyncpg.connect(pg_url, ssl=ssl_ctx, statement_cache_size=0)
     try:
         print(f"Seeding {len(FRAUD_CASES)} fraud cases...")
         for case in FRAUD_CASES:
@@ -290,6 +664,71 @@ async def seed(database_url: str, generate_embeddings: bool, ollama_url: str) ->
             status = "with embedding" if embedding else "no embedding"
             print(f"  '{doc['title']}' — {status}")
 
+        print(f"\nSeeding {len(TRANSACTIONS)} transactions + investigations...")
+        for entry in TRANSACTIONS:
+            t = entry["txn"]
+            inv = entry["inv"]
+            txn_id = str(uuid.uuid4())
+
+            row = await conn.fetchrow(
+                """
+                INSERT INTO transactions (
+                    id, external_id, source, amount_pence, currency,
+                    customer_id, customer_email,
+                    beneficiary_account, beneficiary_name, transfer_type,
+                    ip_address, device_fingerprint, geolocation,
+                    fraud_signals, triggered_rules,
+                    risk_score, risk_level, raw_payload, occurred_at
+                ) VALUES (
+                    $1, $2, $3, $4, 'GBP',
+                    $5, $6,
+                    $7, $8, $9,
+                    $10, $11, $12,
+                    $13::jsonb, '[]'::jsonb,
+                    $14, $15, '{}'::jsonb, $16
+                )
+                ON CONFLICT (source, external_id) DO NOTHING
+                RETURNING id
+                """,
+                txn_id,
+                t["external_id"], t["source"], t["amount_pence"],
+                t["customer_id"], t.get("customer_email"),
+                t.get("beneficiary_account"), t.get("beneficiary_name"), t.get("transfer_type"),
+                t.get("ip_address"), t.get("device_fingerprint"), t.get("geolocation"),
+                json.dumps(t.get("fraud_signals", [])),
+                t["risk_score"], t["risk_level"],
+                t["occurred_at"],
+            )
+
+            actual_txn_id = str(row["id"]) if row else None
+            if not actual_txn_id:
+                print(f"  {t['external_id']} — already exists, skipping")
+                continue
+
+            await conn.execute(
+                """
+                INSERT INTO investigations (
+                    transaction_id, risk_score, risk_level, fraud_type, confidence,
+                    summary, recommended_action,
+                    risk_factors, retrieved_case_ids, policy_rules_triggered,
+                    llm_provider, llm_model, status
+                )
+                SELECT $1, $2, $3, $4, $5, $6, $7, $8::jsonb, '[]'::jsonb, $9::jsonb, $10, $11, $12
+                WHERE NOT EXISTS (
+                    SELECT 1 FROM investigations WHERE transaction_id = $1
+                )
+                """,
+                actual_txn_id,
+                t["risk_score"], t["risk_level"],
+                inv["fraud_type"], inv["confidence"],
+                inv["summary"], inv["recommended_action"],
+                json.dumps(inv["risk_factors"]),
+                json.dumps(inv["policy_rules_triggered"]),
+                "anthropic", "claude-opus-4-7",
+                inv["status"],
+            )
+            print(f"  {t['external_id']} — {inv['fraud_type']} ({inv['status']})")
+
         print("\nDone.")
         if not generate_embeddings:
             print(
@@ -303,6 +742,16 @@ async def seed(database_url: str, generate_embeddings: bool, ollama_url: str) ->
 
 if __name__ == "__main__":
     import os
+    from pathlib import Path
+
+    # Load .env from project root (two levels up from backend/db/)
+    env_file = Path(__file__).parent.parent.parent / ".env"
+    if env_file.exists():
+        for line in env_file.read_text().splitlines():
+            line = line.strip()
+            if line and not line.startswith("#") and "=" in line:
+                k, _, v = line.partition("=")
+                os.environ.setdefault(k.strip(), v.strip())
 
     db_url = os.getenv(
         "DATABASE_URL",
