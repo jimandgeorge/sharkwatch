@@ -25,6 +25,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <Link href="/audit" className="text-[12px] text-zinc-500 hover:text-zinc-300 px-3 py-1 rounded transition-colors">
               Audit
             </Link>
+            <Link href="/integrate" className="text-[12px] text-zinc-500 hover:text-zinc-300 px-3 py-1 rounded transition-colors">
+              Integrate
+            </Link>
           </nav>
           <div className="ml-auto">
             {process.env.AUTH_PASSWORD && (

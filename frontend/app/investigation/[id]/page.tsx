@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { fetchInvestigation, Investigation, RiskFactor } from "@/lib/api";
 import DecisionForm from "./DecisionForm";
 import ChatPanel from "./ChatPanel";
+import NetworkPanel from "./NetworkPanel";
 
 function entityHref(type: string, value: string, invId: string) {
   return `/entity?type=${type}&value=${encodeURIComponent(value)}&from=${invId}`;
@@ -176,6 +177,13 @@ export default async function InvestigationPage({
               </ul>
             </Panel>
           )}
+
+          <NetworkPanel
+            investigationId={inv.id}
+            deviceFingerprint={inv.device_fingerprint}
+            beneficiaryAccount={inv.beneficiary_account}
+            ipAddress={inv.ip_address}
+          />
         </div>
 
         {/* Right column */}
