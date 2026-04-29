@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { submitDecision } from "@/lib/api";
+
+const STORAGE_KEY = "sw-analyst-id";
 
 const ACTIONS = [
   {
@@ -51,9 +53,24 @@ export default function DecisionForm({
   const [action, setAction] = useState(recommendedAction);
   const [notes, setNotes] = useState("");
   const [analystId, setAnalystId] = useState("");
+  const [remembered, setRemembered] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      setAnalystId(stored);
+      setRemembered(true);
+    }
+  }, []);
+
+  function handleAnalystIdChange(val: string) {
+    setAnalystId(val);
+    setRemembered(false);
+    if (val.trim()) localStorage.setItem(STORAGE_KEY, val.trim());
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -130,14 +147,19 @@ export default function DecisionForm({
       </div>
 
       <div>
-        <label className="block text-[10px] font-medium text-zinc-600 uppercase tracking-widest mb-1.5">
-          Analyst ID{" "}
-          <span className="text-red-500/60 normal-case font-normal tracking-normal">required</span>
-        </label>
+        <div className="flex items-center justify-between mb-1.5">
+          <label className="text-[10px] font-medium text-zinc-600 uppercase tracking-widest">
+            Analyst ID{" "}
+            <span className="text-red-500/60 normal-case font-normal tracking-normal">required</span>
+          </label>
+          {remembered && (
+            <span className="text-[10px] text-zinc-600">remembered</span>
+          )}
+        </div>
         <input
           type="text"
           value={analystId}
-          onChange={(e) => setAnalystId(e.target.value)}
+          onChange={(e) => handleAnalystIdChange(e.target.value)}
           placeholder="e.g. jsmith"
           className={inputCls}
         />
