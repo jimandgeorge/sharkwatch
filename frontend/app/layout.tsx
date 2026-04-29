@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import Link from "next/link";
 import "./globals.css";
 import { logout } from "@/app/login/actions";
 
@@ -28,8 +29,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               Shark Watch
             </span>
           </div>
-          <span className="text-zinc-700 select-none">·</span>
-          <span className="text-[12px] text-zinc-500">Investigation Queue</span>
+          <span className="text-zinc-800 select-none">·</span>
+          <nav className="flex items-center gap-0.5">
+            <Link href="/queue" className="text-[12px] text-zinc-500 hover:text-zinc-300 px-2 py-1 rounded transition-colors">
+              Queue
+            </Link>
+            <Link href="/audit" className="text-[12px] text-zinc-500 hover:text-zinc-300 px-2 py-1 rounded transition-colors">
+              Audit
+            </Link>
+          </nav>
           <div className="ml-auto">
             {process.env.AUTH_PASSWORD && (
               <form action={logout}>

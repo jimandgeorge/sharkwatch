@@ -2,7 +2,7 @@ import traceback
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from .api import ingest, investigate, decisions, chat, entities
+from .api import ingest, investigate, decisions, chat, entities, audit
 from .core.config import settings
 from .core.auth import APIKeyMiddleware
 
@@ -26,6 +26,7 @@ app.include_router(investigate.router)
 app.include_router(decisions.router)
 app.include_router(chat.router)
 app.include_router(entities.router)
+app.include_router(audit.router)
 
 
 @app.exception_handler(Exception)

@@ -161,6 +161,43 @@ export async function fetchEntity(type: string, value: string): Promise<EntityRe
   return res.json();
 }
 
+export interface AuditEntry {
+  decision_id: string;
+  action: string;
+  analyst_id: string;
+  analyst_notes: string | null;
+  override_reason: string | null;
+  ai_recommended_action: string;
+  risk_score: number;
+  decided_at: string;
+  investigation_id: string;
+  fraud_type: string | null;
+  confidence: string;
+  summary: string;
+  transaction_id: string;
+  external_id: string;
+  amount_pence: number;
+  currency: string;
+  customer_id: string;
+  customer_email: string | null;
+  source: string;
+  occurred_at: string;
+  beneficiary_name: string | null;
+  beneficiary_account: string | null;
+}
+
+export interface AuditLog {
+  entries: AuditEntry[];
+  total: number;
+  overrides: number;
+}
+
+export async function fetchAuditLog(): Promise<AuditLog> {
+  const res = await fetch(`${BASE}/audit`, { cache: "no-store" });
+  if (!res.ok) throw new Error("Failed to fetch audit log");
+  return res.json();
+}
+
 export async function submitDecision(
   payload: {
     transaction_id: string;
