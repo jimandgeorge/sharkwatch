@@ -12,7 +12,7 @@ function sessionToken(): string {
     .digest("hex");
 }
 
-export async function login(_: unknown, formData: FormData) {
+export async function login(formData: FormData) {
   const password = (formData.get("password") as string) ?? "";
   const expected = process.env.AUTH_PASSWORD ?? "";
 
