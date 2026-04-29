@@ -12,14 +12,7 @@ export default function LoginPage({
     >
       <div className="w-full max-w-[320px]">
         <div className="flex flex-col items-center mb-8">
-          <div className="w-10 h-10 rounded-[8px] bg-[#5E6AD2] flex items-center justify-center mb-3 shrink-0">
-            <svg width="22" height="20" viewBox="0 0 12 11" fill="none">
-              <path
-                d="M1 10 C1.5 6.5 3.5 2 6 0.5 C8.5 2 10.5 6.5 11 10 Z"
-                fill="white"
-              />
-            </svg>
-          </div>
+          <img src="/shark-watch-logo.png" width={48} height={48} alt="" className="mb-3" />
           <h1 className="text-[18px] font-semibold text-zinc-100 tracking-tight">
             Shark Watch
           </h1>
