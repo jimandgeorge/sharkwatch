@@ -26,6 +26,8 @@ services:
     environment:
       API_URL: http://backend:8000
       NEXT_PUBLIC_API_URL: http://209.97.132.252:8000
+      AUTH_PASSWORD: ${AUTH_PASSWORD}
+      SECRET_KEY: ${SECRET_KEY}
     ports:
       - "80:3000"
     depends_on:

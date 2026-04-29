@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import { logout } from "@/app/login/actions";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
@@ -29,6 +30,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </div>
           <span className="text-zinc-700 select-none">·</span>
           <span className="text-[12px] text-zinc-500">Investigation Queue</span>
+          <div className="ml-auto">
+            {process.env.AUTH_PASSWORD && (
+              <form action={logout}>
+                <button type="submit" className="text-[12px] text-zinc-600 hover:text-zinc-300 transition-colors">
+                  Sign out
+                </button>
+              </form>
+            )}
+          </div>
         </header>
         <main className="max-w-6xl mx-auto px-5 py-6">{children}</main>
       </body>
