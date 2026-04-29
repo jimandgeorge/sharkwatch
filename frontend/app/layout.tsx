@@ -17,7 +17,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={`${inter.variable} dark`}>
       <body className="bg-[#0D0D0D] text-zinc-100 antialiased font-sans min-h-screen">
         <header className="h-16 border-b border-zinc-800/70 px-5 flex items-center gap-3 sticky top-0 z-10 bg-[#0D0D0D]/90 backdrop-blur-sm">
-          <img src="/shark-watch-logo.png" width={50} height={50} alt="Shark Watch" className="shrink-0" />
+          <svg width="48" height="40" viewBox="0 0 48 40" fill="none" className="shrink-0">
+            {/* fin */}
+            <path d="M24 2 C22 8 17 18 12 28 L36 28 C32 18 26 8 24 2 Z" stroke="white" strokeWidth="1.8" strokeLinejoin="round" fill="none" />
+            {/* waves */}
+            <path d="M6 34 C9 31 12 37 15 34 C18 31 21 37 24 34 C27 31 30 37 33 34 C36 31 39 37 42 34" stroke="white" strokeWidth="1.8" strokeLinecap="round" fill="none" />
+          </svg>
           <nav className="flex items-center gap-0.5 ml-4">
             <Link href="/queue" className="text-[12px] text-zinc-500 hover:text-zinc-300 px-3 py-1 rounded transition-colors">
               Queue
