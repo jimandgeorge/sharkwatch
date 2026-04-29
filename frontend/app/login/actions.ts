@@ -22,7 +22,7 @@ export async function login(formData: FormData) {
 
   cookies().set("sw-session", sessionToken(), {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: process.env.HTTPS === "true",
     sameSite: "lax",
     maxAge: 60 * 60 * 24 * 7,
     path: "/",
