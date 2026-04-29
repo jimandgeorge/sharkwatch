@@ -16,19 +16,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${inter.variable} dark`}>
       <body className="bg-[#0D0D0D] text-zinc-100 antialiased font-sans min-h-screen">
-        <header className="h-11 border-b border-zinc-800/70 px-5 flex items-center gap-3 sticky top-0 z-10 bg-[#0D0D0D]/90 backdrop-blur-sm">
-          <div className="flex items-center gap-2">
-            <img src="/shark-watch-logo.png" width={20} height={20} alt="" className="shrink-0" />
-            <span className="text-[13px] font-medium text-zinc-100 tracking-tight">
-              Shark Watch
-            </span>
-          </div>
-          <span className="text-zinc-800 select-none">·</span>
-          <nav className="flex items-center gap-0.5">
-            <Link href="/queue" className="text-[12px] text-zinc-500 hover:text-zinc-300 px-2 py-1 rounded transition-colors">
+        <header className="h-16 border-b border-zinc-800/70 px-5 flex items-center gap-3 sticky top-0 z-10 bg-[#0D0D0D]/90 backdrop-blur-sm">
+          <img src="/shark-watch-logo.png" width={50} height={50} alt="Shark Watch" className="shrink-0" />
+          <nav className="flex items-center gap-0.5 ml-4">
+            <Link href="/queue" className="text-[12px] text-zinc-500 hover:text-zinc-300 px-3 py-1 rounded transition-colors">
               Queue
             </Link>
-            <Link href="/audit" className="text-[12px] text-zinc-500 hover:text-zinc-300 px-2 py-1 rounded transition-colors">
+            <Link href="/audit" className="text-[12px] text-zinc-500 hover:text-zinc-300 px-3 py-1 rounded transition-colors">
               Audit
             </Link>
           </nav>
