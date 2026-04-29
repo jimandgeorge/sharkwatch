@@ -31,6 +31,26 @@ function timeAgo(iso: string) {
   return `${Math.floor(secs / 86400)}d`;
 }
 
+function SlaAge({ iso }: { iso: string }) {
+  const hours = (Date.now() - new Date(iso).getTime()) / 3_600_000;
+  const label = timeAgo(iso);
+  if (hours > 8)
+    return (
+      <span className="inline-flex items-center gap-1 text-[11px] font-mono text-red-400">
+        <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse shrink-0" />
+        {label}
+      </span>
+    );
+  if (hours > 2)
+    return (
+      <span className="inline-flex items-center gap-1 text-[11px] font-mono text-amber-400">
+        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
+        {label}
+      </span>
+    );
+  return <span className="text-[12px] text-zinc-600 font-mono">{label}</span>;
+}
+
 export default async function QueuePage({
   searchParams,
 }: {
@@ -172,8 +192,8 @@ export default async function QueuePage({
                         {item.confidence}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-[12px] text-zinc-600 font-mono">
-                      {timeAgo(item.created_at)}
+                    <td className="px-4 py-3">
+                      <SlaAge iso={item.created_at} />
                     </td>
                     <td className="px-4 py-3 text-right pr-4">
                       <Link

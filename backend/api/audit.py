@@ -21,6 +21,7 @@ async def get_audit_log(
                 d.analyst_id,
                 d.analyst_notes,
                 d.override_reason,
+                d.claim_reference,
                 d.ai_recommended_action,
                 d.risk_score,
                 d.decided_at,

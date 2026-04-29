@@ -19,6 +19,7 @@ export default function ExportButton({ entries }: { entries: AuditEntry[] }) {
       "Decision",
       "Override",
       "Override Reason",
+      "Claim Reference",
       "Analyst",
       "Notes",
     ];
@@ -34,6 +35,7 @@ export default function ExportButton({ entries }: { entries: AuditEntry[] }) {
       e.action,
       e.action !== e.ai_recommended_action ? "Yes" : "No",
       e.override_reason ?? "",
+      e.claim_reference ?? "",
       e.analyst_id,
       e.analyst_notes ?? "",
     ]);

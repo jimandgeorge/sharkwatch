@@ -170,6 +170,7 @@ export default async function AuditPage() {
                       "Risk",
                       "Decision",
                       "Analyst",
+                      "Claim ref",
                       "Notes",
                       "",
                     ].map((h) => (
@@ -229,6 +230,11 @@ export default async function AuditPage() {
                         </td>
                         <td className="px-4 py-3 text-[12px] font-mono text-zinc-500">
                           {entry.analyst_id}
+                        </td>
+                        <td className="px-4 py-3 text-[12px] font-mono text-zinc-500">
+                          {entry.claim_reference ?? (
+                            <span className="text-zinc-800">—</span>
+                          )}
                         </td>
                         <td className="px-4 py-3 text-[12px] text-zinc-600 max-w-[200px] truncate">
                           {entry.analyst_notes ?? (

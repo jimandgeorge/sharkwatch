@@ -36,11 +36,11 @@ async def submit_decision(
             INSERT INTO decisions (
                 id, transaction_id, investigation_id, action,
                 analyst_id, analyst_notes, ai_recommended_action,
-                override_reason, risk_score, decided_at
+                override_reason, claim_reference, risk_score, decided_at
             ) VALUES (
                 :id, :txn_id, :inv_id, :action,
                 :analyst_id, :notes, :ai_action,
-                :override, :risk_score, :decided_at
+                :override, :claim_reference, :risk_score, :decided_at
             )
         """),
         {
@@ -52,6 +52,7 @@ async def submit_decision(
             "notes": payload.analyst_notes,
             "ai_action": inv["recommended_action"],
             "override": payload.override_reason,
+            "claim_reference": payload.claim_reference,
             "risk_score": inv["risk_score"],
             "decided_at": now,
         },
@@ -70,6 +71,7 @@ async def submit_decision(
         analyst_notes=payload.analyst_notes,
         ai_recommended_action=inv["recommended_action"],
         override_reason=payload.override_reason,
+        claim_reference=payload.claim_reference,
         risk_score=inv["risk_score"],
         decided_at=now,
     )

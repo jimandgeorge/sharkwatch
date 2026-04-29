@@ -17,7 +17,8 @@ class DecisionPayload(BaseModel):
     transaction_id: str
     action: DecisionAction
     analyst_notes: Optional[str] = None
-    override_reason: Optional[str] = None  # if overriding AI recommendation
+    override_reason: Optional[str] = None
+    claim_reference: Optional[str] = None  # PSR claim or case reference
 
 
 class DecisionRecord(BaseModel):
@@ -28,5 +29,6 @@ class DecisionRecord(BaseModel):
     analyst_notes: Optional[str]
     ai_recommended_action: str
     override_reason: Optional[str]
+    claim_reference: Optional[str]
     risk_score: int
     decided_at: datetime

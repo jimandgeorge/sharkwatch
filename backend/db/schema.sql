@@ -56,6 +56,7 @@ CREATE TABLE decisions (
     analyst_notes           TEXT,
     ai_recommended_action   TEXT NOT NULL,
     override_reason         TEXT,
+    claim_reference         TEXT,
     risk_score              INT NOT NULL,
     decided_at              TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

@@ -51,6 +51,7 @@ export default function DecisionForm({
 }) {
   const router = useRouter();
   const [action, setAction] = useState(recommendedAction);
+  const [claimRef, setClaimRef] = useState("");
   const [notes, setNotes] = useState("");
   const [analystId, setAnalystId] = useState("");
   const [remembered, setRemembered] = useState(false);
@@ -90,6 +91,7 @@ export default function DecisionForm({
             action !== recommendedAction
               ? `Overrode AI recommendation (${recommendedAction})`
               : undefined,
+          claim_reference: claimRef.trim() || undefined,
         },
         analystId.trim()
       );
@@ -161,6 +163,19 @@ export default function DecisionForm({
           value={analystId}
           onChange={(e) => handleAnalystIdChange(e.target.value)}
           placeholder="e.g. jsmith"
+          className={inputCls}
+        />
+      </div>
+
+      <div>
+        <label className="block text-[10px] font-medium text-zinc-600 uppercase tracking-widest mb-1.5">
+          Claim reference <span className="normal-case font-normal tracking-normal text-zinc-700">(PSR / internal ref)</span>
+        </label>
+        <input
+          type="text"
+          value={claimRef}
+          onChange={(e) => setClaimRef(e.target.value)}
+          placeholder="e.g. PSR-2024-00142"
           className={inputCls}
         />
       </div>

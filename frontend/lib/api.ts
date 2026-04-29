@@ -167,6 +167,7 @@ export interface AuditEntry {
   analyst_id: string;
   analyst_notes: string | null;
   override_reason: string | null;
+  claim_reference: string | null;
   ai_recommended_action: string;
   risk_score: number;
   decided_at: string;
@@ -204,6 +205,7 @@ export async function submitDecision(
     action: string;
     analyst_notes?: string;
     override_reason?: string;
+    claim_reference?: string;
   },
   analystId: string
 ): Promise<void> {
