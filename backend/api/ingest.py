@@ -129,12 +129,14 @@ async def _investigate_background(transaction_id: str) -> None:
                     INSERT INTO investigations (
                         transaction_id, risk_score, risk_level, fraud_type, confidence,
                         summary, recommended_action, risk_factors, retrieved_case_ids,
-                        policy_rules_triggered, llm_provider, llm_model
+                        policy_rules_triggered, vulnerability_flag, vulnerability_indicators,
+                        llm_provider, llm_model
                     ) VALUES (
                         :transaction_id, :risk_score, :risk_level, :fraud_type, :confidence,
                         :summary, :recommended_action,
                         :risk_factors, :retrieved_case_ids,
-                        :policy_rules, :llm_provider, :llm_model
+                        :policy_rules, :vulnerability_flag, :vulnerability_indicators,
+                        :llm_provider, :llm_model
                     )
                 """),
                 {
@@ -148,6 +150,8 @@ async def _investigate_background(transaction_id: str) -> None:
                     "risk_factors": json.dumps([f.model_dump() for f in result.risk_factors]),
                     "retrieved_case_ids": json.dumps([c.case_id for c in result.retrieved_cases]),
                     "policy_rules": json.dumps(result.policy_rules_triggered),
+                    "vulnerability_flag": result.vulnerability_flag,
+                    "vulnerability_indicators": json.dumps(result.vulnerability_indicators),
                     "llm_provider": result.llm_provider,
                     "llm_model": result.llm_model,
                 },

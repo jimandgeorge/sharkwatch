@@ -25,6 +25,7 @@ async def get_queue(
             SELECT
                 i.id, i.transaction_id, i.risk_score, i.risk_level,
                 i.fraud_type, i.confidence, i.recommended_action, i.created_at,
+                i.vulnerability_flag,
                 t.amount_pence, t.currency, t.customer_id, t.customer_email, t.source,
                 d.action  AS decision_action,
                 d.analyst_id,
@@ -58,6 +59,7 @@ async def get_investigation(investigation_id: str, db: AsyncSession = Depends(ge
                 i.id, i.transaction_id, i.risk_score, i.risk_level,
                 i.fraud_type, i.confidence, i.summary, i.recommended_action,
                 i.risk_factors, i.retrieved_case_ids, i.policy_rules_triggered,
+                i.vulnerability_flag, i.vulnerability_indicators,
                 i.created_at, i.status, i.llm_provider, i.llm_model,
                 t.amount_pence, t.currency, t.customer_id, t.customer_email,
                 t.merchant_name, t.beneficiary_account, t.beneficiary_name,
@@ -124,7 +126,8 @@ async def run_investigation(transaction_id: str, db: AsyncSession = Depends(get_
             INSERT INTO investigations (
                 transaction_id, risk_score, risk_level, fraud_type, confidence,
                 summary, recommended_action, risk_factors, retrieved_case_ids,
-                policy_rules_triggered, llm_provider, llm_model
+                policy_rules_triggered, vulnerability_flag, vulnerability_indicators,
+                llm_provider, llm_model
             ) VALUES (
                 :transaction_id, :risk_score, :risk_level, :fraud_type, :confidence,
                 :summary, :recommended_action,
@@ -143,6 +146,8 @@ async def run_investigation(transaction_id: str, db: AsyncSession = Depends(get_
             "risk_factors": json.dumps([f.model_dump() for f in result.risk_factors]),
             "retrieved_case_ids": json.dumps([c.case_id for c in result.retrieved_cases]),
             "policy_rules": json.dumps(result.policy_rules_triggered),
+            "vulnerability_flag": result.vulnerability_flag,
+            "vulnerability_indicators": json.dumps(result.vulnerability_indicators),
             "llm_provider": result.llm_provider,
             "llm_model": result.llm_model,
         },

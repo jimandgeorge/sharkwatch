@@ -23,6 +23,7 @@ export interface QueueItem {
   customer_id: string;
   customer_email: string | null;
   source: string;
+  vulnerability_flag: boolean;
   // decided cases only
   decision_action: string | null;
   analyst_id: string | null;
@@ -47,6 +48,8 @@ export interface Investigation {
   risk_factors: RiskFactor[];
   policy_rules_triggered: string[];
   retrieved_case_ids: string[];
+  vulnerability_flag: boolean;
+  vulnerability_indicators: string[];
   created_at: string;
   status: string;
   llm_provider: string;

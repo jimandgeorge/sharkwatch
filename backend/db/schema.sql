@@ -39,7 +39,9 @@ CREATE TABLE investigations (
     recommended_action      TEXT NOT NULL,
     risk_factors            JSONB NOT NULL DEFAULT '[]',
     retrieved_case_ids      JSONB NOT NULL DEFAULT '[]',
-    policy_rules_triggered  JSONB NOT NULL DEFAULT '[]',
+    policy_rules_triggered   JSONB NOT NULL DEFAULT '[]',
+    vulnerability_flag       BOOLEAN NOT NULL DEFAULT FALSE,
+    vulnerability_indicators JSONB NOT NULL DEFAULT '[]',
     llm_provider            TEXT NOT NULL,
     llm_model               TEXT NOT NULL,
     status                  TEXT NOT NULL DEFAULT 'pending',  -- pending | decided

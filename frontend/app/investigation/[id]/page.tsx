@@ -102,6 +102,25 @@ export default async function InvestigationPage({
         </p>
       </div>
 
+      {inv.vulnerability_flag && (
+        <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-4 py-3">
+          <div className="flex items-center gap-2 mb-1.5">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <path d="M7 1L13 12H1L7 1Z" stroke="#F59E0B" strokeWidth="1.5" strokeLinejoin="round"/>
+              <path d="M7 5.5V8" stroke="#F59E0B" strokeWidth="1.5" strokeLinecap="round"/>
+              <circle cx="7" cy="10" r="0.75" fill="#F59E0B"/>
+            </svg>
+            <span className="text-[12px] font-semibold text-amber-400">Vulnerable customer indicators — handle with care</span>
+            <span className="ml-auto text-[10px] text-amber-600 border border-amber-600/30 rounded px-1.5 py-px">FCA Consumer Duty</span>
+          </div>
+          <ul className="space-y-0.5 ml-5">
+            {inv.vulnerability_indicators.map((indicator, i) => (
+              <li key={i} className="text-[12px] text-amber-300/80 list-disc">{indicator}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
 
         {/* Left sidebar */}

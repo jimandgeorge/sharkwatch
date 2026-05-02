@@ -30,6 +30,9 @@ class InvestigationResult(BaseModel):
     retrieved_cases: list[RetrievedCase]
     policy_rules_triggered: list[str]
 
+    vulnerability_flag: bool = False
+    vulnerability_indicators: list[str] = []
+
     generated_at: datetime
     llm_provider: str
     llm_model: str

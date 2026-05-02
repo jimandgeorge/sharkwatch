@@ -169,8 +169,15 @@ export default async function QueuePage({
                         <div className="text-[11px] text-zinc-600 mt-0.5">{item.customer_email}</div>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-[12px] text-zinc-400 max-w-[200px] truncate">
-                      {item.fraud_type ?? <span className="text-zinc-700">—</span>}
+                    <td className="px-4 py-3 max-w-[200px]">
+                      <div className="text-[12px] text-zinc-400 truncate">
+                        {item.fraud_type ?? <span className="text-zinc-700">—</span>}
+                      </div>
+                      {item.vulnerability_flag && (
+                        <span className="inline-flex items-center gap-1 mt-0.5 text-[10px] font-medium text-amber-400 border border-amber-500/20 bg-amber-500/10 rounded px-1.5 py-px">
+                          vulnerable
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       <span

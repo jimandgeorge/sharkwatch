@@ -21,13 +21,17 @@ Rules:
 - Confidence: high (strong evidence) | medium (partial evidence) | low (weak signals only)
 - Output valid JSON only — no prose outside the JSON block.
 
+Also assess customer vulnerability under FCA Consumer Duty. Set vulnerability_flag to true if there are indicators the customer may be vulnerable: romance scam victim, elderly customer being coerced, financial distress, mental health crisis, urgency/pressure from a third party, or first-time large transfer to an unknown recipient that is out of character.
+
 Output schema:
 {
   "fraud_type": "string or null",
   "confidence": "high|medium|low",
   "summary": "one paragraph explanation",
   "recommended_action": "approve|hold|escalate|freeze_account|step_up_verification",
-  "policy_rules_triggered": ["list of rule names"]
+  "policy_rules_triggered": ["list of rule names"],
+  "vulnerability_flag": true or false,
+  "vulnerability_indicators": ["specific signals detected, e.g. 'possible romance scam victim', 'transfer is 54x above customer average'"]
 }"""
 
 
@@ -91,6 +95,8 @@ async def investigate(
         risk_factors=[RiskFactor(**f) for f in risk_factors],
         retrieved_cases=[RetrievedCase(**c) for c in prior_cases],
         policy_rules_triggered=parsed.get("policy_rules_triggered", []),
+        vulnerability_flag=bool(parsed.get("vulnerability_flag", False)),
+        vulnerability_indicators=parsed.get("vulnerability_indicators", []),
         generated_at=datetime.utcnow(),
         llm_provider=provider,
         llm_model=_model_name(),
@@ -180,12 +186,20 @@ def _call_mock(context: dict) -> str:
 
     if score >= 150:
         action, confidence, fraud_type = "hold", "high", "APP fraud — multiple high-risk signals"
+        vuln = True
+        vuln_indicators = ["transfer significantly above customer average", "new beneficiary — no prior payments"]
     elif score >= 100:
         action, confidence, fraud_type = "step_up_verification", "medium", "Suspicious transfer pattern"
+        vuln = False
+        vuln_indicators = []
     elif score >= 50:
         action, confidence, fraud_type = "step_up_verification", "low", None
+        vuln = False
+        vuln_indicators = []
     else:
         action, confidence, fraud_type = "approve", "high", None
+        vuln = False
+        vuln_indicators = []
 
     return json.dumps({
         "fraud_type": fraud_type,
@@ -197,6 +211,8 @@ def _call_mock(context: dict) -> str:
         ),
         "recommended_action": action,
         "policy_rules_triggered": [],
+        "vulnerability_flag": vuln,
+        "vulnerability_indicators": vuln_indicators,
     })
 
 
