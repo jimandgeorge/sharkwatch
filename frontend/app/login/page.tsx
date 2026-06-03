@@ -1,5 +1,4 @@
-import OidcButton from "./OidcButton";
-import PasswordForm from "./PasswordForm";
+import AuthMethods from "./AuthMethods";
 
 const FEATURES = [
   {
@@ -24,10 +23,6 @@ export default function LoginPage({
 }: {
   searchParams: { error?: string };
 }) {
-  const hasOidc     = !!process.env.OIDC_ISSUER;
-  const hasPassword = !!process.env.AUTH_PASSWORD;
-  const providerName = process.env.OIDC_PROVIDER_NAME ?? "SSO";
-
   return (
     <div className="flex min-h-screen">
 
@@ -104,26 +99,7 @@ export default function LoginPage({
             <p className="text-[14px] text-zinc-500">Sign in to your fraud investigation workspace.</p>
           </div>
 
-          <div className="space-y-4">
-            {hasOidc && <OidcButton providerName={providerName} />}
-
-            {hasOidc && hasPassword && (
-              <div className="flex items-center gap-3">
-                <div className="flex-1 h-px bg-zinc-200" />
-                <span className="text-[11px] text-zinc-400 font-medium">or</span>
-                <div className="flex-1 h-px bg-zinc-200" />
-              </div>
-            )}
-
-            {hasPassword && <PasswordForm error={searchParams.error} />}
-
-            {!hasOidc && !hasPassword && (
-              <p className="text-[13px] text-zinc-500 text-center py-4">
-                No authentication configured — set <code className="font-mono text-[12px] bg-zinc-100 px-1 rounded">AUTH_PASSWORD</code> or{" "}
-                <code className="font-mono text-[12px] bg-zinc-100 px-1 rounded">OIDC_ISSUER</code> in your environment.
-              </p>
-            )}
-          </div>
+          <AuthMethods error={searchParams.error} />
 
           <p className="text-[11px] text-zinc-400 text-center mt-8 leading-relaxed">
             Sessions expire after 8 hours of inactivity.<br />
