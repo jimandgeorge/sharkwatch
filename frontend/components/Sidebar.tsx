@@ -69,7 +69,6 @@ export default function Sidebar() {
               stroke="#0F1B2D" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
           </svg>
         </div>
-        <span className="text-[15px] font-semibold text-zinc-900 tracking-tight">Shark Watch</span>
       </div>
 
       {/* Nav */}
