@@ -27,7 +27,7 @@ services:
     dockerContext: .
     dockerCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
-    plan: starter
+    plan: free
     envVars:
       - key: ENVIRONMENT
         value: production
@@ -52,7 +52,7 @@ services:
     dockerfilePath: ./frontend/Dockerfile
     dockerContext: ./frontend
     healthCheckPath: /login
-    plan: starter
+    plan: free
     envVars:
       - key: NODE_ENV
         value: production
