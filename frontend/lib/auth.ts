@@ -39,11 +39,11 @@ function buildProviders() {
       checks: ["pkce", "state"],
       clientId: process.env.OIDC_CLIENT_ID,
       clientSecret: process.env.OIDC_CLIENT_SECRET,
-      profile(profile) {
+      profile(profile: { sub: string; name?: string; email: string }) {
         return {
-          id:    profile.sub   as string,
-          name:  (profile.name ?? profile.email) as string,
-          email: profile.email as string,
+          id:    profile.sub,
+          name:  profile.name ?? profile.email,
+          email: profile.email,
         };
       },
     } as never);
