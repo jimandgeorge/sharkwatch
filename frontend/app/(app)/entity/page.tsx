@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { fetchEntity, EntityTransaction } from "@/lib/api";
+import { AnimatedTbody, AnimatedTr } from "@/components/AnimatedRows";
 
 const RISK: Record<string, { dot: string; label: string }> = {
-  critical: { dot: "bg-red-500",     label: "text-red-400" },
-  high:     { dot: "bg-orange-500",  label: "text-orange-400" },
-  medium:   { dot: "bg-yellow-500",  label: "text-yellow-400" },
-  low:      { dot: "bg-emerald-500", label: "text-emerald-400" },
+  critical: { dot: "bg-red-500",     label: "text-red-600" },
+  high:     { dot: "bg-orange-500",  label: "text-orange-600" },
+  medium:   { dot: "bg-yellow-500",  label: "text-amber-600" },
+  low:      { dot: "bg-emerald-500", label: "text-emerald-600" },
 };
 
 const ENTITY_LABEL: Record<string, string> = {
@@ -58,11 +59,11 @@ export default async function EntityPage({
     <div className="space-y-6">
       {/* Breadcrumb */}
       <nav className="flex items-center gap-1.5 text-[12px] text-zinc-600">
-        <Link href="/queue" className="hover:text-zinc-300 transition-colors">Queue</Link>
+        <Link href="/queue" className="hover:text-zinc-700 transition-colors">Queue</Link>
         {from && (
           <>
             <span>/</span>
-            <Link href={`/investigation/${from}`} className="hover:text-zinc-300 transition-colors font-mono">
+            <Link href={`/investigation/${from}`} className="hover:text-zinc-700 transition-colors font-mono">
               {from.slice(0, 8)}
             </Link>
           </>
@@ -78,11 +79,11 @@ export default async function EntityPage({
             {entityLabel}
           </span>
         </div>
-        <h1 className="text-[18px] font-mono text-zinc-100 break-all">{value}</h1>
+        <h1 className="text-[18px] font-mono text-zinc-900 break-all">{value}</h1>
       </div>
 
       {/* Summary stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-8 gap-y-5">
         {[
           { label: "Transactions", value: summary.total_transactions },
           {
@@ -97,18 +98,11 @@ export default async function EntityPage({
             highlight: summary.pending > 0,
           },
         ].map((stat) => (
-          <div
-            key={stat.label}
-            className="rounded-lg border border-zinc-800 bg-zinc-900/20 px-4 py-3"
-          >
-            <div className="text-[10px] font-medium text-zinc-600 uppercase tracking-widest mb-1">
+          <div key={stat.label}>
+            <div className="text-[10px] font-semibold text-zinc-600 uppercase tracking-widest mb-1.5">
               {stat.label}
             </div>
-            <div
-              className={`text-[20px] font-semibold tabular-nums ${
-                stat.highlight ? "text-red-400" : "text-zinc-100"
-              }`}
-            >
+            <div className={`text-[22px] font-semibold tabular-nums leading-none ${stat.highlight ? "text-red-600" : "text-zinc-900"}`}>
               {stat.value}
             </div>
           </div>
@@ -119,47 +113,45 @@ export default async function EntityPage({
       {transactions.length === 0 ? (
         <p className="text-[13px] text-zinc-600">No transactions found for this entity.</p>
       ) : (
-        <div className="rounded-lg border border-zinc-800 overflow-hidden">
-          <div className="px-4 py-2.5 border-b border-zinc-800 bg-zinc-900/40">
-            <h2 className="text-[10px] font-medium text-zinc-500 uppercase tracking-widest">
-              Linked transactions
-            </h2>
-          </div>
+        <div>
+          <h2 className="text-[10px] font-semibold text-zinc-600 uppercase tracking-widest mb-4">
+            Linked transactions
+          </h2>
           <table className="w-full">
             <thead>
-              <tr className="border-b border-zinc-800">
+              <tr className="border-b border-zinc-200">
                 {["When", "Customer", "Amount", "Risk", "Fraud type", "Outcome", ""].map((h) => (
                   <th
                     key={h}
-                    className="text-left px-4 py-2.5 text-[10px] font-medium text-zinc-600 uppercase tracking-widest"
+                    className="text-left px-4 py-2 text-[10px] font-medium text-zinc-600 uppercase tracking-widest"
                   >
                     {h}
                   </th>
                 ))}
               </tr>
             </thead>
-            <tbody>
+            <AnimatedTbody>
               {transactions.map((txn: EntityTransaction, i: number) => {
                 const r = RISK[txn.risk_level] ?? RISK.low;
                 const isDecided = txn.status === "decided";
 
                 return (
-                  <tr
+                  <AnimatedTr
                     key={txn.transaction_id}
-                    className={`hover:bg-zinc-800/30 transition-colors ${
-                      i > 0 ? "border-t border-zinc-800/50" : ""
+                    className={`relative group hover:bg-zinc-50 cursor-pointer transition-colors ${
+                      i > 0 ? "border-t border-zinc-100" : ""
                     }`}
                   >
                     <td className="px-4 py-3 text-[12px] text-zinc-500 font-mono whitespace-nowrap">
                       {timeAgo(txn.occurred_at)}
                     </td>
                     <td className="px-4 py-3">
-                      <div className="text-[12px] font-mono text-zinc-400">{txn.customer_id}</div>
+                      <div className="text-[13px] font-mono text-zinc-700">{txn.customer_id}</div>
                       {txn.customer_email && (
-                        <div className="text-[11px] text-zinc-600 mt-0.5">{txn.customer_email}</div>
+                        <div className="text-[12px] text-zinc-500 mt-0.5">{txn.customer_email}</div>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-[13px] font-mono font-medium text-zinc-100 tabular-nums whitespace-nowrap">
+                    <td className="px-4 py-3 text-[14px] font-mono font-semibold text-zinc-900 tabular-nums whitespace-nowrap">
                       {formatGBP(txn.amount_pence)}
                     </td>
                     <td className="px-4 py-3">
@@ -168,13 +160,13 @@ export default async function EntityPage({
                         <span className={`text-[12px] font-medium ${r.label}`}>{txn.risk_level}</span>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-[12px] text-zinc-400 max-w-[180px] truncate">
+                    <td className="px-4 py-3 text-[13px] text-zinc-700 max-w-[180px] truncate">
                       {txn.fraud_type ?? <span className="text-zinc-700">—</span>}
                     </td>
                     <td className="px-4 py-3">
                       {isDecided && txn.decision_action ? (
                         <div>
-                          <span className="text-[11px] font-medium text-zinc-300">
+                          <span className="text-[11px] font-medium text-zinc-700">
                             {ACTION_LABEL[txn.decision_action] ?? txn.decision_action}
                           </span>
                           {txn.analyst_id && (
@@ -193,19 +185,20 @@ export default async function EntityPage({
                       {txn.investigation_id && (
                         <Link
                           href={`/investigation/${txn.investigation_id}`}
-                          className="text-[12px] text-[#5E6AD2] hover:text-[#8B93E8] font-medium transition-colors"
+                          className="text-[12px] text-[#10B981] group-hover:text-[#34D399] font-medium transition-colors after:absolute after:inset-0 after:content-['']"
                         >
                           View →
                         </Link>
                       )}
                     </td>
-                  </tr>
+                  </AnimatedTr>
                 );
               })}
-            </tbody>
+            </AnimatedTbody>
           </table>
         </div>
       )}
+
     </div>
   );
 }

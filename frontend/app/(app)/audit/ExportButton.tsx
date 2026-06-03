@@ -56,7 +56,7 @@ export default function ExportButton({ entries }: { entries: AuditEntry[] }) {
   return (
     <button
       onClick={handleExport}
-      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-zinc-700 text-[12px] text-zinc-400 hover:text-zinc-200 hover:border-zinc-600 transition-colors"
+      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-zinc-200 text-[12px] text-zinc-500 hover:text-zinc-800 hover:border-zinc-300 transition-colors"
     >
       <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
         <path d="M6 1v7M3 5l3 3 3-3M1 10h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />

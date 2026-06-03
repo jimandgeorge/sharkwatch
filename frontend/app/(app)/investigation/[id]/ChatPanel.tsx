@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { fetchMessages, ChatMessage, CLIENT_BASE } from "@/lib/api";
 
 const SUGGESTIONS = [
@@ -11,13 +12,13 @@ const SUGGESTIONS = [
   "Are there prior APP fraud cases with this pattern?",
 ];
 
-export default function ChatPanel({ investigationId }: { investigationId: string }) {
+export default function ChatPanel({ investigationId, readOnly = false }: { investigationId: string; readOnly?: boolean }) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [ready, setReady] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
-  const initialised = useRef(false);
+  const userHasSubmitted = useRef(false);
 
   useEffect(() => {
     fetchMessages(investigationId)
@@ -27,10 +28,7 @@ export default function ChatPanel({ investigationId }: { investigationId: string
   }, [investigationId]);
 
   useEffect(() => {
-    if (!initialised.current) {
-      initialised.current = true;
-      return;
-    }
+    if (!userHasSubmitted.current) return;
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
@@ -38,6 +36,7 @@ export default function ChatPanel({ investigationId }: { investigationId: string
     e.preventDefault();
     const q = input.trim();
     if (!q || loading) return;
+    userHasSubmitted.current = true;
 
     const tempAnalystId = `temp-analyst-${Date.now()}`;
     const tempAssistantId = `temp-assistant-${Date.now()}`;
@@ -93,6 +92,14 @@ export default function ChatPanel({ investigationId }: { investigationId: string
                   : m
               )
             );
+          } else if (event.type === "error") {
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === tempAssistantId
+                  ? { ...m, content: `⚠ ${event.message ?? "Something went wrong. Please try again."}` }
+                  : m
+              )
+            );
           }
         }
       }
@@ -104,15 +111,26 @@ export default function ChatPanel({ investigationId }: { investigationId: string
     }
   }
 
+  // Read-only: hide entirely if no history
+  if (readOnly && ready && messages.length === 0) return null;
+
   return (
     <div className="flex flex-col gap-4">
       {/* Thread */}
       <div className="space-y-5 max-h-[600px] overflow-y-auto pr-1">
         {!ready ? (
-          <p className="text-[12px] text-zinc-700">Loading…</p>
+          <div className="space-y-4 animate-pulse">
+            {[80, 55, 92].map((w, i) => (
+              <div key={i}>
+                <div className="h-2 w-10 bg-zinc-200 rounded mb-2" />
+                <div className="h-3 rounded bg-zinc-100" style={{ width: `${w}%` }} />
+                {i === 1 && <div className="h-3 rounded bg-zinc-100 mt-1.5" style={{ width: "60%" }} />}
+              </div>
+            ))}
+          </div>
         ) : messages.length === 0 ? (
           <div>
-            <p className="text-[12px] text-zinc-600 mb-3">
+            <p className="text-[12px] text-zinc-500 mb-3">
               Ask follow-up questions to build your evidence.
             </p>
             <div className="flex flex-col gap-1.5">
@@ -121,7 +139,7 @@ export default function ChatPanel({ investigationId }: { investigationId: string
                   key={s}
                   type="button"
                   onClick={() => setInput(s)}
-                  className="text-left text-[12px] text-zinc-500 hover:text-zinc-200 px-3 py-2 rounded-md border border-zinc-800 hover:border-zinc-600 bg-zinc-900/30 hover:bg-zinc-800/40 transition-colors"
+                  className="text-left text-[12px] text-zinc-500 hover:text-zinc-800 px-3 py-2 rounded-md border border-zinc-200 hover:border-zinc-300 bg-white hover:bg-zinc-50 transition-colors"
                 >
                   {s}
                 </button>
@@ -129,7 +147,8 @@ export default function ChatPanel({ investigationId }: { investigationId: string
             </div>
           </div>
         ) : (
-          messages.map((msg) => {
+          <AnimatePresence initial={false}>
+          {messages.map((msg) => {
             const isWaiting =
               loading &&
               msg.role === "assistant" &&
@@ -137,18 +156,26 @@ export default function ChatPanel({ investigationId }: { investigationId: string
 
             if (msg.role === "analyst") {
               return (
-                <div key={msg.id}>
-                  <p className="text-[10px] font-medium text-zinc-600 uppercase tracking-widest mb-1">
+                <motion.div key={msg.id}
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.18, ease: "easeOut" }}
+                >
+                  <p className="text-[11px] font-medium text-zinc-400 uppercase tracking-wide mb-1.5">
                     Analyst
                   </p>
-                  <p className="text-[13px] text-zinc-400">{msg.content}</p>
-                </div>
+                  <p className="text-[13px] text-zinc-700">{msg.content}</p>
+                </motion.div>
               );
             }
 
             return (
-              <div key={msg.id}>
-                <p className="text-[10px] font-medium text-[#5E6AD2] uppercase tracking-widest mb-1">
+              <motion.div key={msg.id}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.18, ease: "easeOut" }}
+              >
+                <p className="text-[11px] font-medium text-[#059669] uppercase tracking-wide mb-1.5">
                   Shark Watch
                 </p>
                 {isWaiting ? (
@@ -156,13 +183,13 @@ export default function ChatPanel({ investigationId }: { investigationId: string
                     {[0, 1, 2].map((i) => (
                       <span
                         key={i}
-                        className="w-1 h-1 rounded-full bg-zinc-600 animate-bounce"
+                        className="w-1 h-1 rounded-full bg-zinc-300 animate-bounce"
                         style={{ animationDelay: `${i * 150}ms` }}
                       />
                     ))}
                   </div>
                 ) : (
-                  <p className="text-[13px] text-zinc-200 leading-relaxed whitespace-pre-wrap">
+                  <p className="text-[14px] text-zinc-700 leading-relaxed whitespace-pre-wrap">
                     {msg.content}
                   </p>
                 )}
@@ -171,38 +198,40 @@ export default function ChatPanel({ investigationId }: { investigationId: string
                     {msg.sources.map((src, i) => (
                       <span
                         key={i}
-                        className="text-[10px] text-zinc-500 bg-zinc-800/60 border border-zinc-700/40 rounded px-1.5 py-0.5"
+                        className="text-[10px] text-zinc-500 bg-zinc-100 border border-zinc-200 rounded px-1.5 py-0.5"
                       >
                         {src}
                       </span>
                     ))}
                   </div>
                 )}
-              </div>
+              </motion.div>
             );
-          })
+          })}
+          </AnimatePresence>
         )}
 
         <div ref={bottomRef} />
       </div>
 
-      {/* Input */}
-      <form onSubmit={handleSubmit} className="flex gap-2">
-        <input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Ask about this case…"
-          disabled={loading}
-          className="flex-1 bg-zinc-900 border border-zinc-700/80 rounded-md px-3 py-2 text-[13px] text-zinc-200 placeholder-zinc-600 focus:outline-none focus:ring-1 focus:ring-[#5E6AD2] focus:border-[#5E6AD2] transition-colors disabled:opacity-50 min-w-0"
-        />
-        <button
-          type="submit"
-          disabled={loading || !input.trim()}
-          className="px-3 py-2 bg-[#5E6AD2] hover:bg-[#6E7AE2] disabled:opacity-40 text-white text-[12px] font-medium rounded-md transition-colors shrink-0"
-        >
-          Ask
-        </button>
-      </form>
+      {!readOnly && (
+        <form onSubmit={handleSubmit} className="flex gap-2">
+          <input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Ask about this case…"
+            disabled={loading}
+            className="flex-1 bg-white border border-zinc-300 rounded-md px-3 py-2 text-[13px] text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-400 focus:border-zinc-400 transition-colors disabled:opacity-50 min-w-0"
+          />
+          <button
+            type="submit"
+            disabled={loading || !input.trim()}
+            className="px-3 py-2 bg-zinc-900 hover:bg-zinc-700 disabled:opacity-40 text-white text-[12px] font-medium rounded-md transition-colors shrink-0"
+          >
+            Ask
+          </button>
+        </form>
+      )}
     </div>
   );
 }

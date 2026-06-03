@@ -1,13 +1,16 @@
+// All backend routes are namespaced under /api/v1 (see backend/main.py API_PREFIX).
+const API_PREFIX = "/api/v1";
+
 // API_URL is a server-side-only env var used in Docker (http://backend:8000).
 // NEXT_PUBLIC_API_URL / fallback is used by the browser.
 const BASE =
-  process.env.API_URL ??
-  process.env.NEXT_PUBLIC_API_URL ??
-  "http://localhost:8000";
+  (process.env.API_URL ??
+    process.env.NEXT_PUBLIC_API_URL ??
+    "http://localhost:8000") + API_PREFIX;
 
 // For use in client components — only NEXT_PUBLIC_* vars are available in the browser.
 export const CLIENT_BASE =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+  (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000") + API_PREFIX;
 
 export interface QueueItem {
   id: string;
@@ -200,6 +203,63 @@ export async function fetchAuditLog(): Promise<AuditLog> {
   const res = await fetch(`${BASE}/audit`, { cache: "no-store" });
   if (!res.ok) throw new Error("Failed to fetch audit log");
   return res.json();
+}
+
+export interface WebhookConfig {
+  webhook_url:      string | null;
+  webhook_secret:   string;
+  webhook_enabled:  boolean;
+  webhook_events:   string[];
+  supported_events: string[];
+}
+
+export interface WebhookDelivery {
+  delivery_id:   string;
+  event_type:    string;
+  webhook_url:   string;
+  attempt:       number;
+  status:        "success" | "failed";
+  response_code: number | null;
+  error:         string | null;
+  created_at:    string;
+}
+
+export async function fetchWebhookConfig(): Promise<WebhookConfig> {
+  const res = await fetch(`${BASE}/settings/webhook`, { cache: "no-store" });
+  if (!res.ok) throw new Error("Failed to fetch webhook config");
+  return res.json();
+}
+
+export async function saveWebhookConfig(
+  cfg: Pick<WebhookConfig, "webhook_url" | "webhook_enabled" | "webhook_events">
+): Promise<void> {
+  const res = await fetch(`${BASE}/settings/webhook`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(cfg),
+  });
+  if (!res.ok) throw new Error("Failed to save webhook config");
+}
+
+export async function rotateWebhookSecret(): Promise<string> {
+  const res = await fetch(`${BASE}/settings/webhook/rotate-secret`, { method: "POST" });
+  if (!res.ok) throw new Error("Failed to rotate secret");
+  const data = await res.json();
+  return data.webhook_secret;
+}
+
+export async function fetchWebhookDeliveries(): Promise<WebhookDelivery[]> {
+  const res = await fetch(`${BASE}/settings/webhook/deliveries`, { cache: "no-store" });
+  if (!res.ok) throw new Error("Failed to fetch deliveries");
+  const data = await res.json();
+  return data.deliveries;
+}
+
+export async function fetchNextClaimRef(): Promise<string> {
+  const res = await fetch(`${BASE}/decisions/next-ref`, { cache: "no-store" });
+  if (!res.ok) throw new Error("Failed to fetch claim ref");
+  const data = await res.json();
+  return data.claim_reference;
 }
 
 export async function submitDecision(

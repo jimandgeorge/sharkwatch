@@ -19,14 +19,21 @@ spec:
     - host: {{ .Values.ingress.host }}
       http:
         paths:
-          # Backend API paths
-          - path: /(ingest|investigations|decisions|health|docs|openapi\.json)
-            pathType: ImplementationSpecific
+          # Backend API — everything under /api/v1 (see backend/main.py API_PREFIX)
+          - path: /api/v1
+            pathType: Prefix
             backend:
               service:
                 name: {{ .Release.Name }}-backend
                 port: { number: 8000 }
-          # Frontend — everything else
+          # Backend health check (kept at root for infra probes)
+          - path: /health
+            pathType: Exact
+            backend:
+              service:
+                name: {{ .Release.Name }}-backend
+                port: { number: 8000 }
+          # Frontend — everything else (pages + Next.js /api/auth, /api/psr-pack)
           - path: /
             pathType: Prefix
             backend:

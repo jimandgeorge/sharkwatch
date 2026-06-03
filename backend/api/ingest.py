@@ -73,6 +73,18 @@ async def ingest_transaction(
     # Fire-and-forget investigation so ingest returns immediately.
     background_tasks.add_task(_investigate_background, actual_id)
 
+    if row:  # not a duplicate
+        from ..services import webhook as wh
+        wh.fire("case.created", {
+            "transaction_id": actual_id,
+            "external_id":    payload.external_id,
+            "source":         payload.source,
+            "amount_pence":   payload.amount_pence,
+            "customer_id":    payload.customer_id,
+            "risk_score":     score,
+            "risk_level":     level.value,
+        })
+
     return TransactionSummary(
         id=actual_id,
         external_id=payload.external_id,
@@ -157,6 +169,17 @@ async def _investigate_background(transaction_id: str) -> None:
                 },
             )
             await db.commit()
+
+            from ..services import webhook as wh
+            wh.fire("case.investigated", {
+                "transaction_id":    transaction_id,
+                "risk_score":        result.risk_score,
+                "risk_level":        result.risk_level,
+                "fraud_type":        result.fraud_type,
+                "confidence":        result.confidence,
+                "recommended_action": result.recommended_action,
+                "vulnerability_flag": result.vulnerability_flag,
+            })
     except Exception:
         traceback.print_exc()
         print(f"[bg] investigation failed for {transaction_id}", flush=True)

@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { fetchAuditLog, AuditEntry } from "@/lib/api";
 import ExportButton from "./ExportButton";
+import PageHeader from "@/components/PageHeader";
+import { AnimatedTbody, AnimatedTr } from "@/components/AnimatedRows";
 
 const ACTION_LABEL: Record<string, string> = {
   hold:                 "Hold",
@@ -11,11 +13,11 @@ const ACTION_LABEL: Record<string, string> = {
 };
 
 const ACTION_COLOR: Record<string, string> = {
-  approve:              "text-emerald-400",
-  hold:                 "text-orange-400",
-  freeze_account:       "text-red-400",
-  escalate:             "text-yellow-400",
-  step_up_verification: "text-blue-400",
+  approve:              "text-emerald-600",
+  hold:                 "text-orange-600",
+  freeze_account:       "text-red-600",
+  escalate:             "text-amber-600",
+  step_up_verification: "text-blue-600",
 };
 
 function formatGBP(pence: number) {
@@ -78,21 +80,14 @@ export default async function AuditPage() {
 
   return (
     <div>
-      {/* Header */}
-      <div className="flex items-center justify-between mb-5">
-        <div>
-          <h1 className="text-[15px] font-semibold text-zinc-100">Audit Trail</h1>
-          <p className="text-[12px] text-zinc-600 mt-0.5">
-            Every decision made by analysts, with full AI context
-          </p>
-        </div>
-        {!error && log.entries.length > 0 && (
-          <ExportButton entries={log.entries} />
-        )}
-      </div>
+      <PageHeader
+        title="Audit Trail"
+        description="Every decision made by analysts, with full AI context"
+        actions={!error && log.entries.length > 0 ? <ExportButton entries={log.entries} /> : undefined}
+      />
 
       {error && (
-        <div className="rounded-lg border border-red-900/40 bg-red-950/20 text-red-400 px-4 py-3 text-[12px] mb-4">
+        <div className="rounded-lg border border-red-200 bg-red-50 text-red-600 px-4 py-3 text-[12px] mb-4">
           {error}
         </div>
       )}
@@ -100,31 +95,19 @@ export default async function AuditPage() {
       {!error && (
         <>
           {/* Stats strip */}
-          <div className="grid grid-cols-4 gap-3 mb-5">
-            <div className="rounded-lg border border-zinc-800 bg-zinc-900/30 px-4 py-3">
-              <div className="text-[11px] text-zinc-600 uppercase tracking-widest mb-1">
-                Total decisions
-              </div>
-              <div className="text-[22px] font-semibold text-zinc-100 tabular-nums">
-                {log.total}
-              </div>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-5 mb-10">
+            <div>
+              <div className="text-[10px] font-semibold text-zinc-600 uppercase tracking-widest mb-1.5">Total decisions</div>
+              <div className="text-[24px] font-semibold text-zinc-900 tabular-nums leading-none">{log.total}</div>
             </div>
-            <div className="rounded-lg border border-zinc-800 bg-zinc-900/30 px-4 py-3">
-              <div className="text-[11px] text-zinc-600 uppercase tracking-widest mb-1">
-                AI overrides
-              </div>
+            <div>
+              <div className="text-[10px] font-semibold text-zinc-600 uppercase tracking-widest mb-1.5">AI overrides</div>
               <div className="flex items-end gap-2">
-                <span
-                  className={`text-[22px] font-semibold tabular-nums ${
-                    log.overrides > 0 ? "text-amber-400" : "text-zinc-100"
-                  }`}
-                >
+                <span className={`text-[24px] font-semibold tabular-nums leading-none ${log.overrides > 0 ? "text-amber-600" : "text-zinc-900"}`}>
                   {log.overrides}
                 </span>
                 {log.total > 0 && (
-                  <span className="text-[12px] text-zinc-600 mb-1">
-                    {overridePct}%
-                  </span>
+                  <span className="text-[13px] text-zinc-600 mb-0.5">{overridePct}%</span>
                 )}
               </div>
             </div>
@@ -132,18 +115,11 @@ export default async function AuditPage() {
               .sort(([, a], [, b]) => b - a)
               .slice(0, 2)
               .map(([action, count]) => (
-                <div
-                  key={action}
-                  className="rounded-lg border border-zinc-800 bg-zinc-900/30 px-4 py-3"
-                >
-                  <div className="text-[11px] text-zinc-600 uppercase tracking-widest mb-1">
+                <div key={action}>
+                  <div className="text-[10px] font-semibold text-zinc-600 uppercase tracking-widest mb-1.5">
                     {ACTION_LABEL[action] ?? action}
                   </div>
-                  <div
-                    className={`text-[22px] font-semibold tabular-nums ${
-                      ACTION_COLOR[action] ?? "text-zinc-100"
-                    }`}
-                  >
+                  <div className={`text-[24px] font-semibold tabular-nums leading-none ${ACTION_COLOR[action] ?? "text-zinc-900"}`}>
                     {count}
                   </div>
                 </div>
@@ -151,17 +127,24 @@ export default async function AuditPage() {
           </div>
 
           {log.entries.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-24 gap-1.5">
-              <p className="text-zinc-600 text-[13px]">No decisions yet</p>
-              <p className="text-zinc-700 text-[12px]">
+            <div className="flex flex-col items-center justify-center py-24 gap-3">
+              <div className="w-10 h-10 rounded-full bg-zinc-50 flex items-center justify-center">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-600">
+                  <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+              </div>
+              <div className="text-center">
+              <p className="text-zinc-400 text-[13px] font-medium">No decisions yet</p>
+              <p className="text-zinc-600 text-[12px] mt-1">
                 Decided cases will appear here with full audit context
               </p>
+              </div>
             </div>
           ) : (
-            <div className="rounded-lg border border-zinc-800 overflow-hidden">
+            <div>
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-zinc-800 bg-zinc-900/40">
+                  <tr className="border-b border-zinc-200">
                     {[
                       "Decided",
                       "Customer",
@@ -176,40 +159,40 @@ export default async function AuditPage() {
                     ].map((h) => (
                       <th
                         key={h}
-                        className="text-left px-4 py-2.5 text-[10px] font-medium text-zinc-600 uppercase tracking-widest"
+                        className="text-left px-4 py-2 text-[10px] font-medium text-zinc-600 uppercase tracking-widest"
                       >
                         {h}
                       </th>
                     ))}
                   </tr>
                 </thead>
-                <tbody>
+                <AnimatedTbody>
                   {log.entries.map((entry, i) => {
                     const isOverride = entry.action !== entry.ai_recommended_action;
                     return (
-                      <tr
+                      <AnimatedTr
                         key={entry.decision_id}
-                        className={`transition-colors hover:bg-zinc-800/30 ${
-                          i > 0 ? "border-t border-zinc-800/50" : ""
-                        } ${isOverride ? "bg-amber-500/[0.03]" : ""}`}
+                        className={`relative transition-colors hover:bg-zinc-50 cursor-pointer ${
+                          i > 0 ? "border-t border-zinc-100" : ""
+                        }`}
                       >
-                        <td className="px-4 py-3 text-[11px] font-mono text-zinc-500 whitespace-nowrap">
+                        <td className="px-4 py-3 text-[12px] font-mono text-zinc-400 whitespace-nowrap">
                           {formatDate(entry.decided_at)}
                         </td>
                         <td className="px-4 py-3">
-                          <div className="text-[12px] font-mono text-zinc-400">
+                          <div className="text-[13px] font-mono text-zinc-700">
                             {entry.customer_id}
                           </div>
                           {entry.customer_email && (
-                            <div className="text-[11px] text-zinc-600 mt-0.5">
+                            <div className="text-[12px] text-zinc-500 mt-0.5">
                               {entry.customer_email}
                             </div>
                           )}
                         </td>
-                        <td className="px-4 py-3 text-[13px] font-mono font-medium text-zinc-100 tabular-nums whitespace-nowrap">
+                        <td className="px-4 py-3 text-[14px] font-mono font-semibold text-zinc-900 tabular-nums whitespace-nowrap">
                           {formatGBP(entry.amount_pence)}
                         </td>
-                        <td className="px-4 py-3 text-[12px] text-zinc-400 max-w-[160px] truncate">
+                        <td className="px-4 py-3 text-[13px] text-zinc-700 max-w-[160px] truncate">
                           {entry.fraud_type ?? (
                             <span className="text-zinc-700">—</span>
                           )}
@@ -228,10 +211,10 @@ export default async function AuditPage() {
                             </div>
                           )}
                         </td>
-                        <td className="px-4 py-3 text-[12px] font-mono text-zinc-500">
+                        <td className="px-4 py-3 text-[13px] font-mono text-zinc-400">
                           {entry.analyst_id}
                         </td>
-                        <td className="px-4 py-3 text-[12px] font-mono text-zinc-500">
+                        <td className="px-4 py-3 text-[13px] font-mono text-zinc-400">
                           {entry.claim_reference ?? (
                             <span className="text-zinc-800">—</span>
                           )}
@@ -244,17 +227,18 @@ export default async function AuditPage() {
                         <td className="px-4 py-3 text-right pr-4">
                           <Link
                             href={`/investigation/${entry.investigation_id}`}
-                            className="text-[12px] text-zinc-600 hover:text-zinc-300 font-medium transition-colors"
+                            className="text-[12px] text-zinc-600 group-hover:text-zinc-700 font-medium transition-colors after:absolute after:inset-0 after:content-['']"
                           >
                             View →
                           </Link>
                         </td>
-                      </tr>
+                      </AnimatedTr>
                     );
                   })}
-                </tbody>
+                </AnimatedTbody>
               </table>
             </div>
+
           )}
         </>
       )}

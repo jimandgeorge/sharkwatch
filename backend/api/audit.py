@@ -11,10 +11,12 @@ router = APIRouter(prefix="/audit", tags=["audit"])
 async def get_audit_log(
     limit: int = 500,
     offset: int = 0,
+    investigation_id: str = "",
     db: AsyncSession = Depends(get_db),
 ):
+    where = "WHERE i.id = :inv_id" if investigation_id else ""
     rows = await db.execute(
-        text("""
+        text(f"""
             SELECT
                 d.id              AS decision_id,
                 d.action,
@@ -42,10 +44,11 @@ async def get_audit_log(
             FROM decisions d
             JOIN investigations i ON i.id = d.investigation_id
             JOIN transactions t  ON t.id = d.transaction_id
+            {where}
             ORDER BY d.decided_at DESC
             LIMIT :limit OFFSET :offset
         """),
-        {"limit": limit, "offset": offset},
+        {"limit": limit, "offset": offset, **({"inv_id": investigation_id} if investigation_id else {})},
     )
 
     entries = []

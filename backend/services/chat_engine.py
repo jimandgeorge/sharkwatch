@@ -135,19 +135,30 @@ async def answer_stream(
     entity_ctx = await _get_entity_context(db, txn)
     system = SYSTEM_PROMPT + "\n\n" + _build_context(inv, txn, entity_ctx)
 
-    messages = []
-    for msg in history[-20:]:
-        messages.append(
-            {
-                "role": "user" if msg["role"] == "analyst" else "assistant",
-                "content": msg["content"],
-            }
-        )
-    messages.append({"role": "user", "content": question})
+    # Build alternating user/assistant history.
+    # If a previous stream failed, the analyst message was inserted into the DB
+    # without a corresponding assistant reply — leaving a trailing orphaned user
+    # message that would make the Anthropic API reject with a 400.
+    raw = [
+        {"role": "user" if m["role"] == "analyst" else "assistant", "content": m["content"]}
+        for m in history[-20:]
+    ]
+    messages: list[dict] = []
+    for msg in raw:
+        if messages and messages[-1]["role"] == msg["role"]:
+            messages[-1] = msg  # deduplicate consecutive same-role entries
+        else:
+            messages.append(msg)
+    # If history ends with an orphaned user message, replace it with the current
+    # question (the old question was never answered so dropping it is fine).
+    if messages and messages[-1]["role"] == "user":
+        messages[-1] = {"role": "user", "content": question}
+    else:
+        messages.append({"role": "user", "content": question})
 
     client = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key)
     async with client.messages.stream(
-        model="claude-opus-4-7",
+        model="claude-sonnet-4-6",
         max_tokens=512,
         system=system,
         messages=messages,

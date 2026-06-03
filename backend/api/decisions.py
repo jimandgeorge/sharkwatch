@@ -3,10 +3,34 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
 from ..core.database import get_db
 from ..models.decision import DecisionPayload, DecisionRecord
+from ..services import webhook
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 router = APIRouter(prefix="/decisions", tags=["decisions"])
+
+
+async def _next_claim_ref(db: AsyncSession) -> str:
+    year = datetime.now(timezone.utc).year
+    row = await db.execute(
+        text("""
+            INSERT INTO claim_sequences (year, next_val)
+            VALUES (:year, 2)
+            ON CONFLICT (year) DO UPDATE
+                SET next_val = claim_sequences.next_val + 1
+            RETURNING next_val - 1 AS n
+        """),
+        {"year": year},
+    )
+    n = row.scalar()
+    await db.commit()
+    return f"SW-{year}-{n:05d}"
+
+
+@router.get("/next-ref")
+async def next_claim_ref(db: AsyncSession = Depends(get_db)):
+    ref = await _next_claim_ref(db)
+    return {"claim_reference": ref}
 
 
 @router.post("", response_model=DecisionRecord, status_code=201)
@@ -28,8 +52,9 @@ async def submit_decision(
     if not inv:
         raise HTTPException(404, "No pending investigation for this transaction")
 
+    claim_ref = payload.claim_reference or await _next_claim_ref(db)
     decision_id = str(uuid.uuid4())
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
 
     await db.execute(
         text("""
@@ -52,7 +77,7 @@ async def submit_decision(
             "notes": payload.analyst_notes,
             "ai_action": inv["recommended_action"],
             "override": payload.override_reason,
-            "claim_reference": payload.claim_reference,
+            "claim_reference": claim_ref,
             "risk_score": inv["risk_score"],
             "decided_at": now,
         },
@@ -63,7 +88,7 @@ async def submit_decision(
     )
     await db.commit()
 
-    return DecisionRecord(
+    record = DecisionRecord(
         id=decision_id,
         transaction_id=payload.transaction_id,
         action=payload.action,
@@ -71,7 +96,28 @@ async def submit_decision(
         analyst_notes=payload.analyst_notes,
         ai_recommended_action=inv["recommended_action"],
         override_reason=payload.override_reason,
-        claim_reference=payload.claim_reference,
+        claim_reference=claim_ref,
         risk_score=inv["risk_score"],
         decided_at=now,
     )
+
+    is_override = payload.action != inv["recommended_action"]
+    event_data = {
+        "decision_id":         decision_id,
+        "investigation_id":    str(inv["id"]),
+        "transaction_id":      payload.transaction_id,
+        "action":              payload.action,
+        "analyst_id":          x_analyst_id,
+        "ai_recommended":      inv["recommended_action"],
+        "override":            is_override,
+        "risk_score":          inv["risk_score"],
+        "claim_reference":     claim_ref,
+        "decided_at":          now.isoformat(),
+    }
+    webhook.fire("decision.submitted", event_data)
+    if is_override:
+        webhook.fire("decision.overridden", event_data)
+    if payload.action == "escalate":
+        webhook.fire("case.escalated", event_data)
+
+    return record

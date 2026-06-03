@@ -1,8 +1,9 @@
 import { CLIENT_BASE } from "@/lib/api";
+import PageHeader from "@/components/PageHeader";
 
 function Code({ children }: { children: string }) {
   return (
-    <pre className="bg-zinc-900 border border-zinc-800 rounded-lg px-4 py-3 text-[12px] font-mono text-zinc-300 overflow-x-auto whitespace-pre leading-relaxed">
+    <pre className="bg-zinc-900 border border-zinc-800 rounded-lg px-4 py-3 text-[12px] font-mono text-zinc-200 overflow-x-auto whitespace-pre leading-relaxed">
       {children}
     </pre>
   );
@@ -11,7 +12,7 @@ function Code({ children }: { children: string }) {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="space-y-3">
-      <h2 className="text-[13px] font-semibold text-zinc-200">{title}</h2>
+      <h2 className="text-[13px] font-semibold text-zinc-800">{title}</h2>
       {children}
     </section>
   );
@@ -25,7 +26,7 @@ function Badge({ children }: { children: string }) {
   );
 }
 
-const INGEST_EXAMPLE = `POST /ingest/transaction
+const INGEST_EXAMPLE = `POST /api/v1/ingest/transaction
 Content-Type: application/json
 X-API-Key: <your-api-key>
 
@@ -57,7 +58,7 @@ const RESPONSE_EXAMPLE = `HTTP/1.1 202 Accepted
   "status":      "queued"
 }`;
 
-const CURL_EXAMPLE = (base: string) => `curl -X POST ${base}/ingest/transaction \\
+const CURL_EXAMPLE = (base: string) => `curl -X POST ${base}/api/v1/ingest/transaction \\
   -H "Content-Type: application/json" \\
   -H "X-API-Key: your-api-key" \\
   -d '{
@@ -75,7 +76,7 @@ const CURL_EXAMPLE = (base: string) => `curl -X POST ${base}/ingest/transaction 
 const PYTHON_EXAMPLE = (base: string) => `import requests
 
 resp = requests.post(
-    "${base}/ingest/transaction",
+    "${base}/api/v1/ingest/transaction",
     headers={"X-API-Key": "your-api-key"},
     json={
         "external_id":         "fps-20240112-00847",
@@ -107,18 +108,15 @@ export default function IntegratePage() {
 
   return (
     <div className="max-w-3xl space-y-8">
-      <div>
-        <h1 className="text-[15px] font-semibold text-zinc-100">Integration Guide</h1>
-        <p className="text-[12px] text-zinc-500 mt-1">
-          Send flagged transactions to Shark Watch via a single HTTP endpoint.
-          Investigations are triggered automatically — results appear in the queue within seconds.
-        </p>
-      </div>
+      <PageHeader
+        title="Integrate"
+        description="Send flagged transactions to Shark Watch via a single HTTP endpoint. Investigations are triggered automatically — results appear in the queue within seconds."
+      />
 
       <Section title="How it works">
         <ol className="space-y-2 text-[12px] text-zinc-400">
           {[
-            "Your fraud engine flags a transaction and POSTs it to /ingest/transaction",
+            "Your fraud engine flags a transaction and POSTs it to /api/v1/ingest/transaction",
             "Shark Watch scores the transaction, retrieves similar prior cases via RAG, and triggers the LLM investigation",
             "The analyst sees the case in the queue with AI summary, risk signals, and recommended action",
             "Analyst reviews, optionally chats with the copilot, and submits a decision",
@@ -154,12 +152,12 @@ export default function IntegratePage() {
         <p className="text-[12px] text-zinc-500 mb-2">
           Pass any combination in <Badge>fraud_signals</Badge>. Shark Watch uses these to calculate risk score and surface evidence.
         </p>
-        <div className="rounded-lg border border-zinc-800 overflow-hidden">
+        <div className="rounded-xl border border-zinc-200 overflow-hidden">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-zinc-800 bg-zinc-900/40">
+              <tr className="border-b border-zinc-800 bg-zinc-50">
                 {["Signal", "Meaning"].map((h) => (
-                  <th key={h} className="text-left px-4 py-2 text-[10px] font-medium text-zinc-600 uppercase tracking-widest">
+                  <th key={h} className="text-left px-4 py-2 text-[11px] font-medium text-zinc-500 uppercase tracking-wide">
                     {h}
                   </th>
                 ))}
@@ -167,7 +165,7 @@ export default function IntegratePage() {
             </thead>
             <tbody>
               {FRAUD_SIGNALS.map(([signal, meaning], i) => (
-                <tr key={signal} className={i > 0 ? "border-t border-zinc-800/50" : ""}>
+                <tr key={signal} className={i > 0 ? "border-t border-zinc-200" : ""}>
                   <td className="px-4 py-2 font-mono text-[11px] text-zinc-400">{signal}</td>
                   <td className="px-4 py-2 text-[12px] text-zinc-600">{meaning}</td>
                 </tr>

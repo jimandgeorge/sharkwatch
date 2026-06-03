@@ -31,9 +31,16 @@ class Settings(BaseSettings):
 
     # Auth — leave blank to disable (useful for local dev)
     api_key: str = ""
+    # Preferred: store SHA-256 hash of the key instead of plaintext
+    # Generate: python -c "import hashlib; print(hashlib.sha256(b'your-key').hexdigest())"
+    api_key_hash: str = ""
+
+    # CORS — comma-separated allowed origins; defaults to localhost dev
+    cors_origins: str = "http://localhost:3000"
 
     class Config:
         env_file = ".env"
+        extra = "ignore"
 
 
 settings = Settings()

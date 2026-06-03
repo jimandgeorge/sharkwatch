@@ -167,7 +167,7 @@ async def _call_anthropic(context: dict) -> str:
     prompt = _build_prompt(context)
 
     message = await client.messages.create(
-        model="claude-opus-4-7",
+        model="claude-opus-4-8",
         max_tokens=2048,
         system=SYSTEM_PROMPT,
         messages=[{"role": "user", "content": prompt}],
@@ -222,7 +222,7 @@ def _model_name() -> str:
     if settings.llm_provider == "azure":
         return settings.azure_openai_deployment
     if settings.llm_provider == "anthropic":
-        return "claude-opus-4-7"
+        return "claude-opus-4-8"
     if settings.llm_provider == "mock":
         return "mock"
     return settings.aws_bedrock_model_id
