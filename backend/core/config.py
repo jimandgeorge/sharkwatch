@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     secret_key: str
 
     database_url: str
-    redis_url: str
+    redis_url: str = ""   # declared for future use; not required at runtime
 
     llm_provider: Literal["ollama", "azure", "bedrock", "mock", "anthropic"] = "ollama"
 

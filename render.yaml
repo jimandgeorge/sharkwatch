@@ -1,0 +1,75 @@
+# Render Blueprint — Shark Watch demo deployment
+# https://render.com/docs/blueprint-spec
+#
+# This deploys two web services (backend + frontend) straight from the repo.
+# Postgres is on Neon (external), the LLM is the Anthropic API, and Redis is
+# unused — so no managed datastores are needed here.
+#
+# ─── First-deploy steps ────────────────────────────────────────────────────────
+# 1. Push this file, then in Render: New → Blueprint → pick this repo.
+# 2. Render creates both services and asks for the `sync: false` values below.
+#    Set the secrets (DATABASE_URL, ANTHROPIC_API_KEY, AUTH_PASSWORD).
+# 3. After the services get their real URLs, set the four cross-reference URLs
+#    (marked CROSS-REF) in each service's Environment tab, then redeploy:
+#       backend  CORS_ORIGINS   = https://<frontend>.onrender.com
+#       frontend NEXT_PUBLIC_API_URL = https://<backend>.onrender.com
+#       frontend API_URL        = https://<backend>.onrender.com
+#       frontend NEXTAUTH_URL   = https://<frontend>.onrender.com
+#    NEXT_PUBLIC_API_URL is baked at build time, so the frontend redeploys
+#    (rebuilds) when you set it — that's expected.
+
+services:
+  # ─── Backend: FastAPI ──────────────────────────────────────────────────────
+  - type: web
+    name: sharkwatch-backend
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: .
+    dockerCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    plan: starter
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: LLM_PROVIDER
+        value: anthropic
+      - key: SECRET_KEY
+        generateValue: true          # Render generates a strong value
+      - key: DATABASE_URL
+        sync: false                  # Neon connection string — set in dashboard
+      - key: ANTHROPIC_API_KEY
+        sync: false                  # set in dashboard
+      - key: CORS_ORIGINS
+        sync: false                  # CROSS-REF: frontend URL, set after deploy
+      # Optional API-key auth for the ingest endpoint:
+      # - key: API_KEY_HASH
+      #   sync: false
+
+  # ─── Frontend: Next.js ───────────────────────────────────────────────────────
+  - type: web
+    name: sharkwatch-frontend
+    runtime: docker
+    dockerfilePath: ./frontend/Dockerfile
+    dockerContext: ./frontend
+    healthCheckPath: /login
+    plan: starter
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NEXTAUTH_SECRET
+        generateValue: true
+      - key: AUTH_PASSWORD
+        sync: false                  # demo password — set in dashboard
+      - key: NEXT_PUBLIC_API_URL
+        sync: false                  # CROSS-REF: backend URL (baked at build)
+      - key: API_URL
+        sync: false                  # CROSS-REF: backend URL (server-side fetch)
+      - key: NEXTAUTH_URL
+        sync: false                  # CROSS-REF: this frontend's own URL
+      # For SSO instead of/alongside the shared password:
+      # - key: OIDC_ISSUER
+      #   sync: false
+      # - key: OIDC_CLIENT_ID
+      #   sync: false
+      # - key: OIDC_CLIENT_SECRET
+      #   sync: false
