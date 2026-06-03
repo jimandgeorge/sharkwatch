@@ -1,0 +1,37 @@
+name: Keep demo warm
+
+# Render starter/free instances spin down when idle; the first request after a
+# quiet spell takes ~30–60s to wake. This pings both services so a live demo is
+# always responsive. Reads URLs from repo variables BACKEND_URL / FRONTEND_URL
+# (Settings → Secrets and variables → Actions → Variables). If unset, it skips.
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"   # every 10 min (GitHub cron is best-effort; may lag)
+  workflow_dispatch: {}        # manual "Run workflow" button for testing
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping backend /health
+        run: |
+          if [ -z "${{ vars.BACKEND_URL }}" ]; then
+            echo "BACKEND_URL variable not set — skipping."
+          else
+            echo "Pinging ${{ vars.BACKEND_URL }}/health"
+            curl -fsS --max-time 90 "${{ vars.BACKEND_URL }}/health" \
+              && echo " — backend awake" \
+              || echo " — backend ping failed (cold start or down)"
+          fi
+
+      - name: Ping frontend /login
+        run: |
+          if [ -z "${{ vars.FRONTEND_URL }}" ]; then
+            echo "FRONTEND_URL variable not set — skipping."
+          else
+            echo "Pinging ${{ vars.FRONTEND_URL }}/login"
+            curl -fsS --max-time 90 -o /dev/null -w "%{http_code}" "${{ vars.FRONTEND_URL }}/login" \
+              && echo " — frontend awake" \
+              || echo " — frontend ping failed (cold start or down)"
+          fi
