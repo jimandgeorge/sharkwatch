@@ -39,7 +39,7 @@ export default function LoginPage({
                 stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
             </svg>
           </div>
-          <span className="text-white font-semibold text-[16px] tracking-tight">Shark Watch</span>
+          <span className="text-white font-semibold text-[16px] tracking-tight">EIGG</span>
         </div>
 
         <div className="relative space-y-10">
@@ -91,7 +91,7 @@ export default function LoginPage({
                   stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
               </svg>
             </div>
-            <span className="font-semibold text-zinc-900 text-[15px] tracking-tight">Shark Watch</span>
+            <span className="font-semibold text-zinc-900 text-[15px] tracking-tight">EIGG</span>
           </div>
 
           <div className="mb-8">

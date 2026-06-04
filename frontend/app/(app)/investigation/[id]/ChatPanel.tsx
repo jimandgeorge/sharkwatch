@@ -176,7 +176,7 @@ export default function ChatPanel({ investigationId, readOnly = false }: { inves
                 transition={{ duration: 0.18, ease: "easeOut" }}
               >
                 <p className="text-[11px] font-medium text-[#059669] uppercase tracking-wide mb-1.5">
-                  Shark Watch
+                  EIGG
                 </p>
                 {isWaiting ? (
                   <div className="flex items-center gap-1 h-5">

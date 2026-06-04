@@ -131,7 +131,7 @@ function drawFooter(doc, caseId, pageNum, total) {
   doc.rect(0, y, PAGE_W, FOOTER_H).fill(C.navy);
   doc.font(F.regular).fontSize(7).fillColor("rgba(255,255,255,0.5)")
     .text(
-      `Shark Watch  ·  PSR Compliance Document  ·  Case ${caseId.slice(0, 8).toUpperCase()}`,
+      `EIGG  ·  PSR Compliance Document  ·  Case ${caseId.slice(0, 8).toUpperCase()}`,
       MARGIN, y + 9, { lineBreak: false }
     );
   doc.font(F.regular).fontSize(7).fillColor("rgba(255,255,255,0.5)")
@@ -143,7 +143,7 @@ function drawFooter(doc, caseId, pageNum, total) {
 function drawCover(doc, inv, audit) {
   // Navy header
   doc.rect(0, 0, PAGE_W, 80).fill(C.navy);
-  doc.font(F.bold).fontSize(22).fillColor(C.white).text("SHARK WATCH", MARGIN, 22, { lineBreak: false });
+  doc.font(F.bold).fontSize(22).fillColor(C.white).text("EIGG", MARGIN, 22, { lineBreak: false });
   doc.font(F.regular).fontSize(9).fillColor("rgba(255,255,255,0.6)")
     .text("APP Fraud Investigation  ·  PSR Compliance Document", MARGIN, 48, { lineBreak: false });
 
@@ -486,7 +486,7 @@ function drawTranscript(doc, messages, y) {
 
   for (const msg of messages) {
     const isAnalyst = msg.role === "analyst";
-    const label     = isAnalyst ? "ANALYST" : "SHARK WATCH AI";
+    const label     = isAnalyst ? "ANALYST" : "EIGG AI";
     const labelCol  = isAnalyst ? C.accent : C.muted;
     const bgCol     = isAnalyst ? "#EBF4FF" : C.bg;
     const text      = msg.content ?? "";
@@ -566,8 +566,8 @@ function drawBackCover(doc, inv, audit, hash) {
 
   let y = 120;
 
-  // Shark Watch wordmark
-  doc.font(F.bold).fontSize(28).fillColor(C.white).text("SHARK WATCH", MARGIN, y, { lineBreak: false });
+  // EIGG wordmark
+  doc.font(F.bold).fontSize(28).fillColor(C.white).text("EIGG", MARGIN, y, { lineBreak: false });
   y += 40;
   doc.font(F.regular).fontSize(11).fillColor("rgba(255,255,255,0.6)")
     .text("PSR Compliance Document — End of Record", MARGIN, y, { lineBreak: false });
@@ -578,7 +578,7 @@ function drawBackCover(doc, inv, audit, hash) {
   y += 14;
   doc.font(F.regular).fontSize(9).fillColor("rgba(255,255,255,0.7)")
     .text(
-      "This document constitutes a complete audit record generated automatically by Shark Watch at the time of decision. It has not been altered post-decision. The integrity hash below can be used to verify this document against the decision record held in the Shark Watch database.",
+      "This document constitutes a complete audit record generated automatically by EIGG at the time of decision. It has not been altered post-decision. The integrity hash below can be used to verify this document against the decision record held in the EIGG database.",
       MARGIN, y, { width: CW, lineGap: 3 }
     );
   y += 60;
@@ -597,7 +597,7 @@ function drawBackCover(doc, inv, audit, hash) {
   // Meta
   doc.font(F.regular).fontSize(8).fillColor("rgba(255,255,255,0.4)")
     .text(`Generated: ${fmtDate(new Date().toISOString())}`, MARGIN, y, { lineBreak: false })
-    .text("Shark Watch v1  ·  Confidential — For regulatory use only", MARGIN, y, { width: CW, align: "right", lineBreak: false });
+    .text("EIGG v1  ·  Confidential — For regulatory use only", MARGIN, y, { width: CW, align: "right", lineBreak: false });
 }
 
 // ─── Main export ──────────────────────────────────────────────────────────────
@@ -612,9 +612,9 @@ export async function generatePSRPdf({ inv, audit, messages, entities }) {
       margins: { top: MARGIN, bottom: 0, left: MARGIN, right: MARGIN },
       info: {
         Title:   `PSR Claim Pack — ${inv.id}`,
-        Author:  "Shark Watch",
+        Author:  "EIGG",
         Subject: "APP Fraud Investigation — PSR Compliance Document",
-        Creator: "Shark Watch v1",
+        Creator: "EIGG v1",
       },
     });
 

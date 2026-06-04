@@ -72,7 +72,7 @@ API_PREFIX = "/api/v1"
 
 app = FastAPI(
     lifespan=lifespan,
-    title="Shark Watch",
+    title="EIGG",
     version="0.1.0",
     docs_url=f"{API_PREFIX}/docs" if settings.environment != "production" else None,
     openapi_url=f"{API_PREFIX}/openapi.json",

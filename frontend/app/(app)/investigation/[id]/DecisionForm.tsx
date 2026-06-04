@@ -8,7 +8,7 @@ import { submitDecision, fetchNextClaimRef } from "@/lib/api";
 import Toast from "@/components/Toast";
 import PSRPackButton from "./PSRPackButton";
 
-const STORAGE_KEY = "sw-analyst-id";
+const STORAGE_KEY = "eigg-analyst-id";
 
 const ACTIONS = [
   {

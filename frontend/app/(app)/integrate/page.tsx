@@ -110,14 +110,14 @@ export default function IntegratePage() {
     <div className="max-w-3xl space-y-8">
       <PageHeader
         title="Integrate"
-        description="Send flagged transactions to Shark Watch via a single HTTP endpoint. Investigations are triggered automatically — results appear in the queue within seconds."
+        description="Send flagged transactions to EIGG via a single HTTP endpoint. Investigations are triggered automatically — results appear in the queue within seconds."
       />
 
       <Section title="How it works">
         <ol className="space-y-2 text-[12px] text-zinc-400">
           {[
             "Your fraud engine flags a transaction and POSTs it to /api/v1/ingest/transaction",
-            "Shark Watch scores the transaction, retrieves similar prior cases via RAG, and triggers the LLM investigation",
+            "EIGG scores the transaction, retrieves similar prior cases via RAG, and triggers the LLM investigation",
             "The analyst sees the case in the queue with AI summary, risk signals, and recommended action",
             "Analyst reviews, optionally chats with the copilot, and submits a decision",
             "Decision is written to the audit trail with full context — ready for PSR compliance review",
@@ -150,7 +150,7 @@ export default function IntegratePage() {
 
       <Section title="Fraud signals reference">
         <p className="text-[12px] text-zinc-500 mb-2">
-          Pass any combination in <Badge>fraud_signals</Badge>. Shark Watch uses these to calculate risk score and surface evidence.
+          Pass any combination in <Badge>fraud_signals</Badge>. EIGG uses these to calculate risk score and surface evidence.
         </p>
         <div className="rounded-xl border border-zinc-200 overflow-hidden">
           <table className="w-full">

@@ -157,7 +157,7 @@ export default async function InvestigationPage({ params }: { params: { id: stri
             <AnimatedPanel index={1}>
               <section className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-widest">Shark Watch</span>
+                  <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-widest">EIGG</span>
                   <span className="text-[11px] text-zinc-400">APP fraud specialist</span>
                 </div>
                 <ChatPanel investigationId={inv.id} />

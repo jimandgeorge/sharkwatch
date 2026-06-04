@@ -6,7 +6,7 @@ import Providers from "@/components/Providers";
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
-  title: "Shark Watch",
+  title: "EIGG",
   description: "AI Transaction Investigation Copilot",
   icons: { icon: "/favicon.svg" },
 };

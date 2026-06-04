@@ -5,7 +5,7 @@ import { CLIENT_BASE } from "@/lib/api";
 import type { WebhookConfig, WebhookDelivery } from "@/lib/api";
 
 const BACKEND_BASE = CLIENT_BASE;
-const ANALYST_KEY  = "sw-analyst-id";
+const ANALYST_KEY  = "eigg-analyst-id";
 
 const CATEGORIES = [
   { id: "system",     label: "System" },
@@ -212,7 +212,7 @@ function WebhooksPanel() {
       <div className="space-y-1.5">
         <Label>Endpoint URL</Label>
         <input value={url} onChange={e => setUrl(e.target.value)}
-          placeholder="https://your-system.com/webhooks/shark-watch"
+          placeholder="https://your-system.com/webhooks/eigg"
           className={`${inputCls} font-mono`} />
         <p className="text-[11px] text-zinc-400">Must return 2xx within 10 s. Retried 3× with exponential backoff.</p>
       </div>
@@ -229,7 +229,7 @@ function WebhooksPanel() {
         <input readOnly value={showSecret ? secret : "•".repeat(36)}
           className={`${inputCls} font-mono bg-zinc-50 cursor-default`} />
         <p className="text-[11px] text-zinc-400">
-          Verify <code className="bg-zinc-100 px-1 rounded">X-Shark-Watch-Signature</code>:{" "}
+          Verify <code className="bg-zinc-100 px-1 rounded">X-Eigg-Signature</code>:{" "}
           <code className="bg-zinc-100 px-1 rounded">HMAC-SHA256(secret, "v0:ts:delivery_id:body")</code>
         </p>
       </div>

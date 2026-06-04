@@ -7,7 +7,7 @@ held up. Each delivery attempt is logged; retries use exponential backoff.
 
 Signature scheme (Slack-style):
   HMAC-SHA256(secret, f"v0:{timestamp}:{delivery_id}:{body}")
-  Header: X-Shark-Watch-Signature: v0=<hex>
+  Header: X-Eigg-Signature: v0=<hex>
 """
 
 import asyncio
@@ -82,11 +82,11 @@ async def _deliver_with_retry(
     timestamp = datetime.now(timezone.utc).isoformat()
     sig = _sign(secret, timestamp, delivery_id, payload_json)
     headers = {
-        "Content-Type":               "application/json",
-        "X-Shark-Watch-Event":        event,
-        "X-Shark-Watch-Delivery":     delivery_id,
-        "X-Shark-Watch-Signature":    sig,
-        "X-Shark-Watch-Timestamp":    timestamp,
+        "Content-Type":         "application/json",
+        "X-Eigg-Event":         event,
+        "X-Eigg-Delivery":      delivery_id,
+        "X-Eigg-Signature":     sig,
+        "X-Eigg-Timestamp":     timestamp,
     }
 
     for attempt, delay in enumerate(RETRY_DELAYS, 1):
