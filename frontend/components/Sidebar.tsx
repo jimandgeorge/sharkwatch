@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
+import Logo from "@/components/Logo";
 
 const NAV = [
   {
@@ -63,12 +64,7 @@ export default function Sidebar() {
 
       {/* Brand */}
       <div className="flex items-center gap-2.5 px-3.5 h-16 shrink-0">
-        <div className="w-12 h-12 flex items-center justify-center shrink-0">
-          <svg width="40" height="30" viewBox="0 0 48 36" fill="none">
-            <path d="M8 28 C10 10 20 2 26 2 C28 10 30 20 38 28 Z"
-              stroke="#0F1B2D" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-          </svg>
-        </div>
+        <Logo size={30} className="text-zinc-900 shrink-0" />
       </div>
 
       {/* Nav */}

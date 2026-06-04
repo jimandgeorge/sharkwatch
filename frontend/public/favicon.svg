@@ -1,5 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 36">
-  <path d="M8 28 C10 10 20 2 26 2 C28 10 30 20 38 28 Z"
-    fill="none" stroke="#0F1B2D" stroke-width="2.5"
-    stroke-linecap="round" stroke-linejoin="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- bolder near-centre split for small-size legibility -->
+  <!-- left zone filled -->
+  <path d="M232 9.2 A248 248 0 0 0 232 502.8 Z" fill="#0F1B2D"/>
+  <!-- right zone outlined (water edge), heavy stroke -->
+  <path d="M264 8.1 A248 248 0 0 1 264 503.9" fill="none" stroke="#0F1B2D"
+    stroke-width="38" stroke-linecap="butt"/>
 </svg>

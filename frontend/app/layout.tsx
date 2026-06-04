@@ -8,7 +8,7 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 export const metadata: Metadata = {
   title: "EIGG",
   description: "AI Transaction Investigation Copilot",
-  icons: { icon: "/favicon.svg" },
+  icons: { icon: "/favicon.svg?v=4" },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

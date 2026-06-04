@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="EIGG">
+  <clipPath id="left">
+    <rect x="0" y="0" width="185" height="512"/>
+  </clipPath>
+  <!-- left zone — filled -->
+  <circle cx="256" cy="256" r="248" fill="#000000" clip-path="url(#left)"/>
+  <!-- right zone — outline only (water edge) -->
+  <path d="M209 12.5 A248 248 0 1 1 209 499.5 Z"
+    fill="none" stroke="#000000" stroke-width="14" stroke-linejoin="round"/>
+</svg>

@@ -1,4 +1,5 @@
 import AuthMethods from "./AuthMethods";
+import Logo from "@/components/Logo";
 
 const FEATURES = [
   {
@@ -33,13 +34,8 @@ export default function LoginPage({
         />
 
         <div className="relative flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-white/10 border border-white/10 flex items-center justify-center">
-            <svg width="18" height="13" viewBox="0 0 48 36" fill="none">
-              <path d="M8 28 C10 10 20 2 26 2 C28 10 30 20 38 28 Z"
-                stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-            </svg>
-          </div>
-          <span className="text-white font-semibold text-[16px] tracking-tight">EIGG</span>
+          <Logo size={34} className="text-white shrink-0" />
+          <span className="text-white font-semibold text-[16px] tracking-[0.25em]">EIGG</span>
         </div>
 
         <div className="relative space-y-10">
@@ -85,13 +81,8 @@ export default function LoginPage({
 
           {/* Mobile logo */}
           <div className="flex items-center gap-2.5 mb-10 lg:hidden">
-            <div className="w-8 h-8 rounded-lg bg-zinc-900 flex items-center justify-center">
-              <svg width="16" height="12" viewBox="0 0 48 36" fill="none">
-                <path d="M8 28 C10 10 20 2 26 2 C28 10 30 20 38 28 Z"
-                  stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-              </svg>
-            </div>
-            <span className="font-semibold text-zinc-900 text-[15px] tracking-tight">EIGG</span>
+            <Logo size={30} className="text-zinc-900 shrink-0" />
+            <span className="font-semibold text-zinc-900 text-[15px] tracking-[0.25em]">EIGG</span>
           </div>
 
           <div className="mb-8">
