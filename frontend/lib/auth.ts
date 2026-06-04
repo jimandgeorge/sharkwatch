@@ -56,6 +56,7 @@ function buildProviders() {
         id: "credentials",
         name: "Password",
         credentials: {
+          username: { label: "Name", type: "text" },
           password: { label: "Password", type: "password" },
         },
         async authorize(credentials, req) {
@@ -71,7 +72,11 @@ function buildProviders() {
           if (!credentials?.password) return null;
           if (credentials.password !== process.env.AUTH_PASSWORD) return null;
 
-          return { id: "workspace", name: "Analyst", email: null };
+          // Shared password gates access; the name is the analyst's identity
+          // (recorded on their decisions). Not separately verified — for
+          // verified per-user identity, use OIDC.
+          const name = credentials.username?.trim() || "Analyst";
+          return { id: name, name, email: null };
         },
       })
     );

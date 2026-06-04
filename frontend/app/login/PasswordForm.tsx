@@ -15,8 +15,11 @@ export default function PasswordForm({ error }: { error?: string }) {
     e.preventDefault();
     setLoading(true);
     setLocalError(false);
-    const password = (new FormData(e.currentTarget).get("password") as string) ?? "";
+    const form = new FormData(e.currentTarget);
+    const username = (form.get("username") as string) ?? "";
+    const password = (form.get("password") as string) ?? "";
     const result = await signIn("credentials", {
+      username,
       password,
       redirect: false,
     });
@@ -33,13 +36,28 @@ export default function PasswordForm({ error }: { error?: string }) {
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-1.5">
         <label className="text-[12px] font-medium text-zinc-600 uppercase tracking-widest">
+          Name
+        </label>
+        <input
+          type="text"
+          name="username"
+          placeholder="Your name"
+          autoComplete="username"
+          autoFocus
+          required
+          className="w-full bg-white border border-zinc-300 rounded-lg px-4 py-3 text-[14px] text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-900/10 focus:border-zinc-400 transition-colors"
+        />
+      </div>
+
+      <div className="space-y-1.5">
+        <label className="text-[12px] font-medium text-zinc-600 uppercase tracking-widest">
           Password
         </label>
         <input
           type="password"
           name="password"
           placeholder="Enter workspace password"
-          autoFocus
+          autoComplete="current-password"
           required
           className="w-full bg-white border border-zinc-300 rounded-lg px-4 py-3 text-[14px] text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-900/10 focus:border-zinc-400 transition-colors"
         />
