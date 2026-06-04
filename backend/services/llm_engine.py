@@ -60,6 +60,7 @@ async def investigate(
     context: dict,
     risk_factors: list[dict],
     prior_cases: list[dict],
+    provider: str | None = None,
 ) -> InvestigationResult:
     full_context = {
         "transaction": context,
@@ -68,7 +69,9 @@ async def investigate(
         "prior_cases": prior_cases,
     }
 
-    provider = settings.llm_provider
+    # Active provider can be switched at runtime (workspace_settings); fall back
+    # to the LLM_PROVIDER env default when not set.
+    provider = provider or settings.llm_provider
     if provider == "ollama":
         raw = await _call_ollama(full_context)
     elif provider == "azure":
@@ -99,7 +102,7 @@ async def investigate(
         vulnerability_indicators=parsed.get("vulnerability_indicators", []),
         generated_at=datetime.utcnow(),
         llm_provider=provider,
-        llm_model=_model_name(),
+        llm_model=_model_name(provider),
     )
 
 
@@ -216,13 +219,34 @@ def _call_mock(context: dict) -> str:
     })
 
 
-def _model_name() -> str:
-    if settings.llm_provider == "ollama":
+ANTHROPIC_MODEL = "claude-opus-4-8"
+
+
+def _model_name(provider: str | None = None) -> str:
+    provider = provider or settings.llm_provider
+    if provider == "ollama":
         return settings.ollama_model
-    if settings.llm_provider == "azure":
+    if provider == "azure":
         return settings.azure_openai_deployment
-    if settings.llm_provider == "anthropic":
-        return "claude-opus-4-8"
-    if settings.llm_provider == "mock":
+    if provider == "anthropic":
+        return ANTHROPIC_MODEL
+    if provider == "mock":
         return "mock"
     return settings.aws_bedrock_model_id
+
+
+# Which providers are usable, based on whether their credentials/config are present.
+def provider_availability() -> list[dict]:
+    import os
+    return [
+        {"id": "anthropic", "label": "Anthropic (Claude)",  "model": ANTHROPIC_MODEL,
+         "available": bool(settings.anthropic_api_key)},
+        {"id": "ollama",    "label": "Ollama (self-hosted)", "model": settings.ollama_model,
+         "available": bool(os.getenv("OLLAMA_BASE_URL"))},
+        {"id": "azure",     "label": "Azure OpenAI",         "model": settings.azure_openai_deployment,
+         "available": bool(settings.azure_openai_key and settings.azure_openai_endpoint)},
+        {"id": "bedrock",   "label": "AWS Bedrock",          "model": settings.aws_bedrock_model_id,
+         "available": bool(os.getenv("AWS_ACCESS_KEY_ID"))},
+        {"id": "mock",      "label": "Mock (dev)",           "model": "mock",
+         "available": True},
+    ]

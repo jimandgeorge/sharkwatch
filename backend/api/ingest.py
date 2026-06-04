@@ -134,7 +134,11 @@ async def _investigate_background(transaction_id: str) -> None:
                 db, txn_dict, structured_factors
             )
 
-            result = await llm_engine.investigate(txn_dict, structured_factors, similar_cases)
+            prov = await db.execute(text("SELECT llm_provider FROM workspace_settings LIMIT 1"))
+            active_provider = prov.scalar()  # None -> engine uses env default
+            result = await llm_engine.investigate(
+                txn_dict, structured_factors, similar_cases, provider=active_provider
+            )
 
             await db.execute(
                 text("""

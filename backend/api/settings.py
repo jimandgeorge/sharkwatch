@@ -1,10 +1,12 @@
 import uuid
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
 
 from ..core.database import get_db
+from ..core.config import settings as app_settings
+from ..services.llm_engine import provider_availability
 
 router = APIRouter(prefix="/settings", tags=["settings"])
 
@@ -116,3 +118,36 @@ async def get_deliveries(db: AsyncSession = Depends(get_db)):
             item["created_at"] = item["created_at"].isoformat()
         entries.append(item)
     return {"deliveries": entries}
+
+
+# ── LLM provider switcher ───────────────────────────────────────────────────────
+
+class LlmConfig(BaseModel):
+    provider: str
+
+
+@router.get("/llm")
+async def get_llm(db: AsyncSession = Depends(get_db)):
+    cfg = await _ensure_settings(db)
+    active = cfg.get("llm_provider") or app_settings.llm_provider
+    return {
+        "active":    active,
+        "default":   app_settings.llm_provider,   # env LLM_PROVIDER
+        "providers": provider_availability(),
+    }
+
+
+@router.put("/llm")
+async def set_llm(body: LlmConfig, db: AsyncSession = Depends(get_db)):
+    providers = {p["id"]: p for p in provider_availability()}
+    if body.provider not in providers:
+        raise HTTPException(400, f"Unknown provider: {body.provider}")
+    if not providers[body.provider]["available"]:
+        raise HTTPException(400, f"Provider '{body.provider}' is not configured on this server")
+    await _ensure_settings(db)
+    await db.execute(
+        text("UPDATE workspace_settings SET llm_provider = :p, updated_at = NOW()"),
+        {"p": body.provider},
+    )
+    await db.commit()
+    return {"ok": True, "active": body.provider}

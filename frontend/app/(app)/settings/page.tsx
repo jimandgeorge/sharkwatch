@@ -9,6 +9,7 @@ const ANALYST_KEY  = "eigg-analyst-id";
 
 const CATEGORIES = [
   { id: "system",     label: "System" },
+  { id: "model",      label: "Model" },
   { id: "account",   label: "Account" },
   { id: "webhooks",  label: "Webhooks" },
   { id: "compliance",label: "Compliance" },
@@ -319,6 +320,110 @@ function WebhooksPanel() {
   );
 }
 
+// ── Model (LLM provider switcher) ───────────────────────────────────────────────
+
+interface LlmProvider { id: string; label: string; model: string; available: boolean; }
+
+function ModelPanel() {
+  const [providers, setProviders] = useState<LlmProvider[] | null>(null);
+  const [active, setActiveProvider] = useState<string>("");
+  const [defaultProvider, setDefaultProvider] = useState<string>("");
+  const [saving, setSaving] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    try {
+      const r = await fetch(`${BACKEND_BASE}/settings/llm`);
+      if (!r.ok) throw new Error();
+      const d = await r.json();
+      setProviders(d.providers);
+      setActiveProvider(d.active);
+      setDefaultProvider(d.default);
+    } catch { setErr("Could not load model settings."); }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  async function select(id: string) {
+    if (id === active) return;
+    setSaving(id); setErr(null);
+    try {
+      const r = await fetch(`${BACKEND_BASE}/settings/llm`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ provider: id }),
+      });
+      if (!r.ok) {
+        const d = await r.json().catch(() => ({}));
+        throw new Error(d.detail || "Failed to switch provider");
+      }
+      setActiveProvider(id);
+    } catch (e) { setErr(e instanceof Error ? e.message : "Failed to switch."); }
+    finally { setSaving(null); }
+  }
+
+  if (!providers) {
+    return <div className="space-y-3 animate-pulse">{[1,2,3].map(i => <div key={i} className="h-16 bg-zinc-50 rounded-lg border border-zinc-100" />)}</div>;
+  }
+
+  return (
+    <div className="space-y-5">
+      <div>
+        <Label>Investigation model</Label>
+        <p className="text-[12px] text-zinc-500 -mt-1.5 mb-3">
+          Which LLM runs the fraud investigation. Switches live — no redeploy. New investigations use the selected provider.
+        </p>
+        {err && <p className="text-[12px] text-red-500 mb-3">{err}</p>}
+
+        <div className="space-y-2">
+          {providers.map((p) => {
+            const isActive = p.id === active;
+            const disabled = !p.available;
+            return (
+              <button
+                key={p.id}
+                type="button"
+                disabled={disabled || saving !== null}
+                onClick={() => select(p.id)}
+                className={`w-full text-left flex items-center gap-3 px-4 py-3 rounded-lg border transition-colors ${
+                  isActive
+                    ? "border-zinc-900 bg-zinc-50"
+                    : disabled
+                      ? "border-zinc-100 bg-zinc-50/50 cursor-not-allowed opacity-60"
+                      : "border-zinc-200 hover:border-zinc-300 hover:bg-zinc-50"
+                }`}
+              >
+                <span className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
+                  isActive ? "border-zinc-900" : "border-zinc-300"
+                }`}>
+                  {isActive && <span className="w-2 h-2 rounded-full bg-zinc-900" />}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <div className="text-[13px] font-medium text-zinc-800">
+                    {p.label}
+                    {p.id === defaultProvider && <span className="ml-2 text-[10px] font-normal text-zinc-400">env default</span>}
+                  </div>
+                  <div className="text-[11px] font-mono text-zinc-400 mt-0.5 truncate">{p.model}</div>
+                </div>
+                <span className="shrink-0 text-[11px]">
+                  {saving === p.id ? <span className="text-zinc-400">switching…</span>
+                    : isActive ? <span className="text-emerald-600 font-medium">active</span>
+                    : disabled ? <span className="text-zinc-400">not configured</span>
+                    : <span className="text-zinc-400">select</span>}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+        <p className="text-[11px] text-zinc-400 mt-3">
+          Applies to both investigations and analyst chat. Unconfigured providers need their
+          credentials set on the server (Ollama host, Azure / AWS keys).
+        </p>
+      </div>
+    </div>
+  );
+}
+
 // ── Compliance ────────────────────────────────────────────────────────────────
 
 function CompliancePanel() {
@@ -337,6 +442,7 @@ function CompliancePanel() {
 
 const PANELS: Record<Category, React.ReactNode> = {
   system:     <SystemPanel />,
+  model:      <ModelPanel />,
   account:    <AccountPanel />,
   webhooks:   <WebhooksPanel />,
   compliance: <CompliancePanel />,

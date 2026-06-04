@@ -129,9 +129,7 @@ async def answer_stream(
     inv: dict,
     txn: dict,
 ):
-    """Async generator that yields text tokens from Claude."""
-    import anthropic
-
+    """Async generator that yields text tokens from the active LLM provider."""
     entity_ctx = await _get_entity_context(db, txn)
     system = SYSTEM_PROMPT + "\n\n" + _build_context(inv, txn, entity_ctx)
 
@@ -156,6 +154,31 @@ async def answer_stream(
     else:
         messages.append({"role": "user", "content": question})
 
+    # Active provider — runtime-switchable, same source as the investigation engine.
+    row = await db.execute(text("SELECT llm_provider FROM workspace_settings LIMIT 1"))
+    provider = row.scalar() or settings.llm_provider
+
+    if provider == "anthropic":
+        gen = _stream_anthropic(system, messages)
+    elif provider == "ollama":
+        gen = _stream_ollama(system, messages)
+    elif provider == "azure":
+        gen = _stream_azure(system, messages)
+    elif provider == "bedrock":
+        gen = _stream_bedrock(system, messages)
+    elif provider == "mock":
+        gen = _stream_mock(messages)
+    else:
+        raise ValueError(f"Unknown LLM provider: {provider}")
+
+    async for token in gen:
+        yield token
+
+
+# ── Provider-specific streaming ─────────────────────────────────────────────────
+
+async def _stream_anthropic(system: str, messages: list[dict]):
+    import anthropic
     client = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key)
     async with client.messages.stream(
         model="claude-sonnet-4-6",
@@ -165,3 +188,89 @@ async def answer_stream(
     ) as stream:
         async for text in stream.text_stream:
             yield text
+
+
+async def _stream_ollama(system: str, messages: list[dict]):
+    import httpx
+    payload = {
+        "model": settings.ollama_model,
+        "messages": [{"role": "system", "content": system}, *messages],
+        "stream": True,
+    }
+    async with httpx.AsyncClient(timeout=120) as client:
+        async with client.stream("POST", f"{settings.ollama_base_url}/api/chat", json=payload) as resp:
+            resp.raise_for_status()
+            async for line in resp.aiter_lines():
+                if not line.strip():
+                    continue
+                data = json.loads(line)
+                chunk = (data.get("message") or {}).get("content")
+                if chunk:
+                    yield chunk
+
+
+async def _stream_azure(system: str, messages: list[dict]):
+    from openai import AsyncAzureOpenAI
+    client = AsyncAzureOpenAI(
+        azure_endpoint=settings.azure_openai_endpoint,
+        api_key=settings.azure_openai_key,
+        api_version="2024-08-01-preview",
+    )
+    stream = await client.chat.completions.create(
+        model=settings.azure_openai_deployment,
+        messages=[{"role": "system", "content": system}, *messages],
+        stream=True,
+    )
+    async for chunk in stream:
+        if chunk.choices and chunk.choices[0].delta and chunk.choices[0].delta.content:
+            yield chunk.choices[0].delta.content
+
+
+async def _stream_bedrock(system: str, messages: list[dict]):
+    import boto3, asyncio
+    body = json.dumps({
+        "anthropic_version": "bedrock-2023-05-31",
+        "max_tokens": 512,
+        "system": system,
+        "messages": messages,
+    })
+    client = boto3.client("bedrock-runtime", region_name=settings.aws_bedrock_region)
+    loop = asyncio.get_event_loop()
+    resp = await loop.run_in_executor(
+        None,
+        lambda: client.invoke_model_with_response_stream(
+            modelId=settings.aws_bedrock_model_id, body=body
+        ),
+    )
+    it = iter(resp["body"])
+
+    def _next():
+        try:
+            return next(it)
+        except StopIteration:
+            return None
+
+    while True:
+        event = await loop.run_in_executor(None, _next)
+        if event is None:
+            break
+        chunk = event.get("chunk")
+        if not chunk:
+            continue
+        data = json.loads(chunk["bytes"].decode())
+        if data.get("type") == "content_block_delta":
+            text_delta = (data.get("delta") or {}).get("text")
+            if text_delta:
+                yield text_delta
+
+
+async def _stream_mock(messages: list[dict]):
+    import asyncio
+    reply = (
+        "[MOCK] Based on the evidence in context, this is consistent with the "
+        "flagged pattern. Switch to a real provider in Settings → Model for "
+        "genuine analysis."
+    )
+    for word in reply.split(" "):
+        yield word + " "
+        await asyncio.sleep(0.02)

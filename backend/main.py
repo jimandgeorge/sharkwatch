@@ -1,11 +1,13 @@
 import traceback
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from sqlalchemy.ext.asyncio import AsyncSession
 from .api import ingest, investigate, decisions, chat, entities, audit
 from .api import settings as settings_api
 from .core.config import settings
 from .core.auth import APIKeyMiddleware
+from .core.database import get_db
 
 from contextlib import asynccontextmanager
 from .core.database import engine
@@ -48,6 +50,10 @@ async def lifespan(_app):
                 next_val INTEGER NOT NULL DEFAULT 1
             )
         """))
+        # Runtime-switchable active LLM provider (null = use LLM_PROVIDER env default)
+        await conn.execute(_text(
+            "ALTER TABLE workspace_settings ADD COLUMN IF NOT EXISTS llm_provider TEXT"
+        ))
         # Audit immutability: block UPDATE/DELETE on decisions (PSR tamper-resistance).
         # See backend/db/harden_audit.py for the standalone migration + docs.
         await conn.execute(_text("""
@@ -124,11 +130,13 @@ async def health():
 
 
 @app.get(f"{API_PREFIX}/system")
-async def system_info():
+async def system_info(db: AsyncSession = Depends(get_db)):
     from .services.llm_engine import _model_name
+    row = await db.execute(_text("SELECT llm_provider FROM workspace_settings LIMIT 1"))
+    active = row.scalar() or settings.llm_provider
     return {
         "version": "1.0.0",
-        "llm_provider": settings.llm_provider,
-        "llm_model": _model_name(),
+        "llm_provider": active,
+        "llm_model": _model_name(active),
         "environment": settings.environment,
     }
