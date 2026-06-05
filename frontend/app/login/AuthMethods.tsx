@@ -31,7 +31,7 @@ export default function AuthMethods({ error }: { error?: string }) {
   }
 
   const oidc = providers["oidc"];
-  const hasPassword = !!providers["credentials"];
+  const hasPassword = !!(providers["credentials"] || providers["account"]);
 
   if (!oidc && !hasPassword) {
     return (

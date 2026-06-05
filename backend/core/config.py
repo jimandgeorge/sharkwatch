@@ -38,6 +38,16 @@ class Settings(BaseSettings):
     # CORS — comma-separated allowed origins; defaults to localhost dev
     cors_origins: str = "http://localhost:3000"
 
+    # Admin / platform
+    app_base_url: str = "http://localhost:3000"          # builds invite links
+    internal_api_secret: str = "dev-internal-secret-change-me"  # gates admin/auth endpoints
+    admin_email: str = ""                                 # seeded platform super-admin
+    admin_password: str = ""
+
+    # Email (invites). If resend_api_key is unset, invites are stubbed (link logged).
+    resend_api_key: str = ""
+    email_from: str = "EIGG <noreply@eigg.io>"
+
     class Config:
         env_file = ".env"
         extra = "ignore"

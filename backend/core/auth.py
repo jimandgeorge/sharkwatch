@@ -23,6 +23,9 @@ from starlette.responses import JSONResponse
 from .config import settings
 
 _EXEMPT = {"/health", "/api/v1/docs", "/api/v1/openapi.json"}
+# Admin proxy (internal-secret gated), invite acceptance (token gated) and account
+# verify carry their own auth, so they're exempt from the integrator API-key check.
+_EXEMPT_PREFIXES = ("/api/v1/admin", "/api/v1/auth", "/api/v1/invite")
 
 
 def _auth_enabled() -> bool:
@@ -43,7 +46,8 @@ def _verify(provided: str) -> bool:
 
 class APIKeyMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
-        if not _auth_enabled() or request.url.path in _EXEMPT:
+        if (not _auth_enabled() or request.url.path in _EXEMPT
+                or request.url.path.startswith(_EXEMPT_PREFIXES)):
             return await call_next(request)
 
         key = request.headers.get("X-API-Key", "")

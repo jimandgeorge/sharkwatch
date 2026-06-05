@@ -24,8 +24,37 @@ function checkRateLimit(ip: string): boolean {
 
 // ── Providers ─────────────────────────────────────────────────────────────────
 
+const API = (process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000") + "/api/v1";
+
 function buildProviders() {
   const providers: NextAuthOptions["providers"] = [];
+
+  // Account login (email + password) — verified against the backend users table.
+  // Used by invited users and the platform admin. authorize() runs server-side, so
+  // the internal secret stays on the server.
+  providers.push(
+    CredentialsProvider({
+      id: "account",
+      name: "Account",
+      credentials: { email: { label: "Email", type: "text" }, password: { label: "Password", type: "password" } },
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.password) return null;
+        try {
+          const res = await fetch(`${API}/auth/verify`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "x-internal-secret": process.env.INTERNAL_API_SECRET ?? "" },
+            body: JSON.stringify({ email: credentials.email, password: credentials.password }),
+          });
+          if (!res.ok) return null;
+          const u = await res.json();
+          return { id: u.id, name: u.name ?? u.email, email: u.email,
+                   is_admin: u.is_admin, role: u.role, workspace_id: u.workspace_id } as never;
+        } catch {
+          return null;
+        }
+      },
+    })
+  );
 
   // Generic OIDC — works with Google, Okta, Auth0, Azure AD, etc.
   if (process.env.OIDC_ISSUER && process.env.OIDC_CLIENT_ID) {
@@ -103,13 +132,21 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.email = user.email ?? null;
         token.name  = user.name  ?? null;
+        const u = user as { is_admin?: boolean; role?: string; workspace_id?: string | null };
+        token.is_admin = !!u.is_admin;
+        token.role = u.role ?? null;
+        token.workspace_id = u.workspace_id ?? null;
       }
       return token;
     },
     session({ session, token }) {
       if (session.user) {
+        session.user.id = (token.sub as string | undefined) ?? null;
         session.user.email = (token.email as string | null) ?? null;
         session.user.name  = (token.name  as string | null) ?? null;
+        session.user.is_admin = !!token.is_admin;
+        session.user.role = (token.role as string | null) ?? null;
+        session.user.workspace_id = (token.workspace_id as string | null) ?? null;
       }
       return session;
     },

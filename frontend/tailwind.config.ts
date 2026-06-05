@@ -12,6 +12,10 @@ const config: Config = {
       fontFamily: {
         sans: ["var(--font-inter)", "ui-sans-serif", "system-ui", "sans-serif"],
       },
+      colors: {
+        ink: "#0F1B2D",    // brand dark
+        brand: "#10B981",  // EIGG green
+      },
     },
   },
   plugins: [],

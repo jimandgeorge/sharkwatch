@@ -16,13 +16,12 @@ export default function PasswordForm({ error }: { error?: string }) {
     setLoading(true);
     setLocalError(false);
     const form = new FormData(e.currentTarget);
-    const username = (form.get("username") as string) ?? "";
+    const identifier = ((form.get("username") as string) ?? "").trim();
     const password = (form.get("password") as string) ?? "";
-    const result = await signIn("credentials", {
-      username,
-      password,
-      redirect: false,
-    });
+    // An email signs in a real account; a plain name uses the shared-password demo login.
+    const result = identifier.includes("@")
+      ? await signIn("account", { email: identifier, password, redirect: false })
+      : await signIn("credentials", { username: identifier, password, redirect: false });
     if (result?.error) {
       setLocalError(true);
       setLoading(false);
@@ -36,12 +35,12 @@ export default function PasswordForm({ error }: { error?: string }) {
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-1.5">
         <label className="text-[12px] font-medium text-zinc-600 uppercase tracking-widest">
-          Name
+          Name or email
         </label>
         <input
           type="text"
           name="username"
-          placeholder="Your name"
+          placeholder="Your name or email"
           autoComplete="username"
           autoFocus
           required
