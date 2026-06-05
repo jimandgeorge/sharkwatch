@@ -7,7 +7,7 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
   title: "EIGG",
-  description: "AI Transaction Investigation Copilot",
+  description: "AI-powered APP fraud investigation for lean fraud teams. PSR compliant. Self-hosted.",
   icons: { icon: "/favicon.svg?v=4" },
 };
 
