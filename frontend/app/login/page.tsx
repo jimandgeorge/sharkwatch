@@ -35,7 +35,7 @@ export default function LoginPage({
 
         <div className="relative flex items-center gap-3">
           <Logo size={34} className="text-white shrink-0" />
-          <span className="text-white font-semibold text-[16px] tracking-[0.25em]">EIGG</span>
+          <span className="text-white font-semibold text-[16px] tracking-[0.2em]">EIGG INVESTIGATE</span>
         </div>
 
         <div className="relative space-y-10">
@@ -82,7 +82,7 @@ export default function LoginPage({
           {/* Mobile logo */}
           <div className="flex items-center gap-2.5 mb-10 lg:hidden">
             <Logo size={30} className="text-zinc-900 shrink-0" />
-            <span className="font-semibold text-zinc-900 text-[15px] tracking-[0.25em]">EIGG</span>
+            <span className="font-semibold text-zinc-900 text-[15px] tracking-[0.2em]">EIGG INVESTIGATE</span>
           </div>
 
           <div className="mb-8">
