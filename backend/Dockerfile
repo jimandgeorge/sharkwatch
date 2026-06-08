@@ -10,4 +10,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY backend/ ./backend/
 
-CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Apply the core schema on a fresh DB (idempotent — no-op if it already exists), then serve.
+CMD ["sh", "-c", "python -m backend.db.init && uvicorn backend.main:app --host 0.0.0.0 --port 8000"]

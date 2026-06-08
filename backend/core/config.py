@@ -7,6 +7,9 @@ class Settings(BaseSettings):
     secret_key: str
 
     database_url: str
+    # Managed Postgres (Neon) needs TLS → default on. Set false for a bundled
+    # non-SSL Postgres (e.g. the self-host compose).
+    db_ssl: bool = True
     redis_url: str = ""   # declared for future use; not required at runtime
 
     llm_provider: Literal["ollama", "azure", "bedrock", "mock", "anthropic"] = "ollama"

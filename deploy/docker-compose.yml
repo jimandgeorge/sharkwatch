@@ -1,0 +1,70 @@
+# EIGG Investigate — self-host (image-based). Pulls the published images from GitHub
+# Container Registry; no source checkout. Copy .env.example -> .env, fill it in, then:
+#   docker compose up -d
+services:
+  db:
+    # pgvector image: Postgres + the `vector` extension EIGG uses for case retrieval.
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: ${DB_USER:-eigg}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME:-eigg_investigate}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-eigg} -d ${DB_NAME:-eigg_investigate}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  backend:
+    image: ghcr.io/jimandgeorge/eigg-investigate-backend:${IMAGE_TAG:-latest}
+    environment:
+      ENVIRONMENT: production
+      SECRET_KEY: ${SECRET_KEY}
+      DATABASE_URL: postgresql+asyncpg://${DB_USER:-eigg}:${DB_PASSWORD}@db:5432/${DB_NAME:-eigg_investigate}
+      DB_SSL: "false"
+      APP_BASE_URL: ${PUBLIC_URL}
+      CORS_ORIGINS: ${PUBLIC_URL}
+      INTERNAL_API_SECRET: ${INTERNAL_API_SECRET}
+      ADMIN_EMAIL: ${ADMIN_EMAIL}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      LLM_PROVIDER: ${LLM_PROVIDER:-mock}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      EMAIL_FROM: ${EMAIL_FROM:-EIGG <noreply@eigg.io>}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    image: ghcr.io/jimandgeorge/eigg-investigate-frontend:${IMAGE_TAG:-latest}
+    environment:
+      NEXTAUTH_URL: ${PUBLIC_URL}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
+      API_URL: http://backend:8000
+      INTERNAL_API_SECRET: ${INTERNAL_API_SECRET}
+      AUTH_PASSWORD: ${AUTH_PASSWORD:-}
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "${HTTP_PORT:-80}:80"
+      # For HTTPS, uncomment and drop your cert into ./certs (see nginx.conf):
+      # - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      # - ./certs:/etc/nginx/certs:ro
+    depends_on:
+      - frontend
+      - backend
+    restart: unless-stopped
+
+volumes:
+  pgdata:
