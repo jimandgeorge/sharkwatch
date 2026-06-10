@@ -50,6 +50,7 @@ services:
       dockerfile: backend/Dockerfile
     environment:
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-fraud}:${POSTGRES_PASSWORD}@postgres:5432/fraudcopilot
+      DB_SSL: "false"
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
       LLM_PROVIDER: ${LLM_PROVIDER:-ollama}
       OLLAMA_BASE_URL: http://ollama:11434
@@ -74,6 +75,10 @@ services:
     build: ./frontend
     environment:
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+      API_URL: http://backend:8000
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
+      NEXTAUTH_SECRET: ${SECRET_KEY:?required}
+      AUTH_PASSWORD: ${AUTH_PASSWORD:-}
     ports:
       - "3000:3000"
     depends_on:

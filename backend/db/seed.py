@@ -607,9 +607,13 @@ def _vec_literal(v: list[float]) -> str:
 async def seed(database_url: str, generate_embeddings: bool, ollama_url: str) -> None:
     pg_url = database_url.replace("postgresql+asyncpg://", "postgresql://").split("?")[0]
 
-    ssl_ctx = ssl.create_default_context()
-    ssl_ctx.check_hostname = False
-    ssl_ctx.verify_mode = ssl.CERT_NONE
+    import os
+    if os.getenv("DB_SSL", "true").strip().lower() in ("0", "false", "no", "off"):
+        ssl_ctx = None  # bundled / local non-SSL Postgres (self-host compose)
+    else:
+        ssl_ctx = ssl.create_default_context()
+        ssl_ctx.check_hostname = False
+        ssl_ctx.verify_mode = ssl.CERT_NONE
 
     conn = await asyncpg.connect(pg_url, ssl=ssl_ctx, statement_cache_size=0)
     try:
