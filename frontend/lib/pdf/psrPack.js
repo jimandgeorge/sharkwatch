@@ -105,7 +105,7 @@ function sectionBar(doc, y, title) {
   doc.rect(MARGIN, y, CW, 20).fill(C.navy);
   doc.font(F.bold).fontSize(8).fillColor(C.white)
     .text(title.toUpperCase(), MARGIN + 8, y + 6, { characterSpacing: 0.8, lineBreak: false });
-  return y + 28;
+  return y + 24;
 }
 
 function kv(doc, label, value, x, y, { mono = false, color = C.body, width } = {}) {
@@ -141,22 +141,22 @@ function drawFooter(doc, caseId, pageNum, total) {
 // ─── Pages ────────────────────────────────────────────────────────────────────
 
 function drawCover(doc, inv, audit) {
-  // Navy header
-  doc.rect(0, 0, PAGE_W, 80).fill(C.navy);
-  doc.font(F.bold).fontSize(22).fillColor(C.white).text("EIGG", MARGIN, 22, { lineBreak: false });
-  doc.font(F.regular).fontSize(9).fillColor("rgba(255,255,255,0.6)")
-    .text("APP Fraud Investigation  ·  PSR Compliance Document", MARGIN, 48, { lineBreak: false });
+  // Navy header (banner height reduced ~30%: 80 -> 56, smaller logo, tighter padding)
+  doc.rect(0, 0, PAGE_W, 56).fill(C.navy);
+  doc.font(F.bold).fontSize(16).fillColor(C.white).text("EIGG", MARGIN, 14, { lineBreak: false });
+  doc.font(F.regular).fontSize(8).fillColor("rgba(255,255,255,0.6)")
+    .text("APP Fraud Investigation  ·  PSR Compliance Document", MARGIN, 34, { lineBreak: false });
 
   // Accent bar with case ref
-  doc.rect(0, 80, PAGE_W, 32).fill(C.accent);
+  doc.rect(0, 56, PAGE_W, 28).fill(C.accent);
   doc.font(F.bold).fontSize(10).fillColor(C.white)
-    .text(`Case: ${inv.id}`, MARGIN, 90, { lineBreak: false });
+    .text(`Case: ${inv.id}`, MARGIN, 64, { lineBreak: false });
   if (audit?.claim_reference) {
     doc.font(F.regular).fontSize(10).fillColor("rgba(255,255,255,0.85)")
-      .text(`PSR Ref: ${audit.claim_reference}`, MARGIN, 90, { width: CW, align: "right", lineBreak: false });
+      .text(`PSR Ref: ${audit.claim_reference}`, MARGIN, 64, { width: CW, align: "right", lineBreak: false });
   }
 
-  let y = 132;
+  let y = 100;
 
   // ── Three KPI boxes ──────────────────────────────────────────────────────
   const boxW = (CW - 16) / 3;
@@ -200,7 +200,7 @@ function drawCover(doc, inv, audit) {
   }
 
   hRule(doc, y);
-  return y + 12;
+  return y + 10;
 }
 
 function drawTransactionDetails(doc, inv, y) {
@@ -230,7 +230,7 @@ function drawTransactionDetails(doc, inv, y) {
   y += 20;
 
   hRule(doc, y);
-  return y + 12;
+  return y + 10;
 }
 
 function drawFraudSignals(doc, inv, y) {
@@ -287,7 +287,7 @@ function drawFraudSignals(doc, inv, y) {
   y += 30;
 
   hRule(doc, y);
-  return y + 12;
+  return y + 10;
 }
 
 function drawAIAssessment(doc, inv, audit, y) {
@@ -340,7 +340,7 @@ function drawAIAssessment(doc, inv, audit, y) {
   y += summaryH + 24;
 
   hRule(doc, y);
-  return y + 12;
+  return y + 10;
 }
 
 function drawSimilarCases(doc, inv, y) {
@@ -372,70 +372,66 @@ function drawSimilarCases(doc, inv, y) {
 
   y += 10;
   hRule(doc, y);
-  return y + 12;
+  return y + 10;
 }
 
 function drawEntityNetwork(doc, entities, y) {
-  const hasData = entities.some(Boolean);
+  const present = (entities ?? []).filter(Boolean);
+  const hasData = present.some(e => (e.summary?.total_transactions ?? 0) > 0);
   y = needsPage(doc, y, 60);
   y = sectionBar(doc, y, "6. Entity Network");
 
   if (!hasData) {
     doc.font(F.regular).fontSize(9).fillColor(C.muted)
       .text("No linked entities identified across other investigations.", MARGIN, y);
-    return y + 20;
+    return y + 10;
   }
 
-  const labels = ["Device", "Beneficiary Account", "IP Address"];
+  const TYPE_LABEL = { device: "Device", account: "Beneficiary Account", ip: "IP Address" };
 
-  for (let i = 0; i < entities.length; i++) {
-    const e = entities[i];
-    if (!e) continue;
+  // Consolidated entity table — one row per linked entity.
+  const cType  = MARGIN + 8;
+  const cValue = MARGIN + 90;
+  const cTxns  = MARGIN + 275;
+  const cCust  = MARGIN + 350;
+  const cExp   = MARGIN + 415;
+  const expW   = MARGIN + CW - cExp;
 
-    y = needsPage(doc, y, 48);
-    const others = e.transactions.filter(t => t.status !== null);
-    const pending = e.summary.pending;
-    const isMule = others.length >= 3;
+  // Header row
+  doc.rect(MARGIN, y, CW, 18).fill(C.navy);
+  doc.font(F.bold).fontSize(7).fillColor(C.white)
+    .text("ENTITY TYPE", cType, y + 6, { lineBreak: false })
+    .text("ENTITY VALUE", cValue, y + 6, { lineBreak: false })
+    .text("LINKED TXNS", cTxns, y + 6, { lineBreak: false })
+    .text("CUSTOMERS", cCust, y + 6, { lineBreak: false })
+    .text("EXPOSURE", cExp, y + 6, { width: expW, align: "right", lineBreak: false });
+  y += 18;
 
-    doc.font(F.bold).fontSize(8).fillColor(C.muted)
-      .text(labels[i].toUpperCase(), MARGIN, y, { characterSpacing: 0.5, lineBreak: false });
-    if (isMule) {
-      doc.rect(MARGIN + 140, y - 1, 60, 12).fill(C.critical);
-      doc.font(F.bold).fontSize(7).fillColor(C.white)
-        .text("MULE RISK", MARGIN + 147, y + 2, { lineBreak: false });
-    }
-    y += 12;
+  present.forEach((e, i) => {
+    y = needsPage(doc, y, 18);
+    const s = e.summary ?? {};
+    doc.rect(MARGIN, y, CW, 18).fill(i % 2 === 0 ? C.bg : C.white);
+    doc.font(F.bold).fontSize(8).fillColor(C.body)
+      .text(TYPE_LABEL[e.entity_type] ?? (e.entity_type ?? "—"), cType, y + 5, { lineBreak: false, width: cValue - cType - 6, ellipsis: true });
+    doc.font(F.mono).fontSize(8).fillColor(C.body)
+      .text(e.entity_value ?? "—", cValue, y + 5, { lineBreak: false, width: cTxns - cValue - 8, ellipsis: true });
+    doc.font(F.regular).fontSize(8).fillColor(C.body)
+      .text(String(s.total_transactions ?? 0), cTxns, y + 5, { lineBreak: false });
+    doc.font(F.regular).fontSize(8).fillColor(C.body)
+      .text(String(s.unique_customers ?? 0), cCust, y + 5, { lineBreak: false });
+    doc.font(F.bold).fontSize(8).fillColor(C.body)
+      .text(fmtGBP(s.total_exposure_pence), cExp, y + 5, { width: expW, align: "right", lineBreak: false });
+    y += 18;
+  });
+  y += 10;
 
-    doc.font(F.regular).fontSize(9).fillColor(C.body)
-      .text(`${e.summary.total_transactions} transaction${e.summary.total_transactions !== 1 ? "s" : ""} linked  ·  ${e.summary.unique_customers} unique customer${e.summary.unique_customers !== 1 ? "s" : ""}  ·  ${pending} pending  ·  Total exposure ${fmtGBP(e.summary.total_exposure_pence)}`, MARGIN, y, { width: CW });
-    y += 16;
-
-    // Show up to 4 linked transactions
-    const sample = others.slice(0, 4);
-    if (sample.length) {
-      doc.rect(MARGIN, y, CW, 16).fill(C.navy);
-      doc.font(F.bold).fontSize(7).fillColor(C.white)
-        .text("CUSTOMER", MARGIN + 8, y + 4, { lineBreak: false })
-        .text("AMOUNT",   MARGIN + 160, y + 4, { lineBreak: false })
-        .text("STATUS",   MARGIN + 260, y + 4, { lineBreak: false })
-        .text("DECISION", MARGIN + 340, y + 4, { lineBreak: false });
-      y += 16;
-
-      sample.forEach((t, j) => {
-        y = needsPage(doc, y, 16);
-        doc.rect(MARGIN, y, CW, 16).fill(j % 2 === 0 ? C.bg : C.white);
-        doc.font(F.mono).fontSize(8).fillColor(C.body).text(t.customer_id, MARGIN + 8, y + 4, { lineBreak: false, width: 148 });
-        doc.font(F.regular).fontSize(8).fillColor(C.body).text(fmtGBP(t.amount_pence), MARGIN + 160, y + 4, { lineBreak: false });
-        doc.font(F.regular).fontSize(8).fillColor(C.muted).text(t.status ?? "—", MARGIN + 260, y + 4, { lineBreak: false });
-        doc.font(F.bold).fontSize(8).fillColor(decisionColor(t.decision_action)).text(decisionLabel(t.decision_action), MARGIN + 340, y + 4, { lineBreak: false });
-        y += 16;
-      });
-    }
-    y += 12;
-  }
+  const note = "Entities linked to this transaction across other investigations. 'Linked transactions' counts every transaction sharing the entity; 'total exposure' is their aggregate value.";
+  y = needsPage(doc, y, 32);
+  doc.font(F.regular).fontSize(8).fillColor(C.muted).text(note, MARGIN, y, { width: CW });
+  y += doc.heightOfString(note, { width: CW }) + 8;
 
   hRule(doc, y);
-  return y + 12;
+  return y + 10;
 }
 
 function drawAnalystDecision(doc, inv, audit, y) {
@@ -475,7 +471,7 @@ function drawAnalystDecision(doc, inv, audit, y) {
   }
 
   hRule(doc, y);
-  return y + 12;
+  return y + 10;
 }
 
 function drawTranscript(doc, messages, y) {
@@ -521,7 +517,7 @@ function drawTranscript(doc, messages, y) {
   }
 
   hRule(doc, y);
-  return y + 12;
+  return y + 10;
 }
 
 function drawVulnerableCustomer(doc, inv, y) {
@@ -555,7 +551,7 @@ function drawVulnerableCustomer(doc, inv, y) {
   y += doc.heightOfString("", { width: CW }) + 24;
 
   hRule(doc, y);
-  return y + 12;
+  return y + 10;
 }
 
 function drawBackCover(doc, inv, audit, hash) {
